@@ -131,8 +131,8 @@ export default function TravelTab() {
                 <div
                   key={seg.id}
                   style={{
-                    background: '#3d3d3d',
-                    border: `1px solid ${seg.flagged ? 'rgba(201,160,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    background: '#2e2e2e',
+                    border: `1px solid ${seg.flagged ? 'rgba(201,160,68,0.4)' : 'rgba(255,255,255,0.07)'}`,
                     borderTop: `3px solid ${tc.color}`,
                     borderRadius: 12,
                     overflow: 'hidden',

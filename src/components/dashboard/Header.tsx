@@ -21,56 +21,61 @@ export default function Header() {
   return (
     <header
       style={{
-        background: 'linear-gradient(135deg, #252525 0%, #2e2e2e 100%)',
-        borderBottom: '1px solid rgba(201, 160, 68, 0.25)',
+        background: '#252525',
+        borderBottom: '1px solid rgba(201, 160, 68, 0.2)',
       }}
       className="sticky top-0 z-50 px-6 py-3"
     >
       <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-        {/* Left — Brand name only */}
-        <div className="flex items-center gap-3">
+        {/* Left — Brand */}
+        <div className="flex items-center gap-4">
+          <div style={{ width: 1, height: 32, background: 'rgba(201,160,68,0.3)', display: 'none' }} />
           <div>
-            <div style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase' }}>
+            <div style={{ color: '#c9a044', fontSize: '10px', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase' }}>
               Iconic Founders Group
             </div>
-            <div style={{ color: '#fff', fontSize: '13px', fontWeight: 700, letterSpacing: '0.3px', lineHeight: 1.2 }}>
+            <div style={{ color: '#fff', fontSize: '14px', fontWeight: 700, letterSpacing: '0.2px', lineHeight: 1.2 }}>
               CEO Executive Dashboard
             </div>
           </div>
 
           <div
-            style={{ background: 'rgba(76,175,130,0.1)', border: '1px solid rgba(76,175,130,0.25)', borderRadius: 20 }}
-            className="px-3 py-1 flex items-center gap-2 ml-2"
+            style={{ background: 'rgba(76,175,130,0.08)', border: '1px solid rgba(76,175,130,0.2)', borderRadius: 20 }}
+            className="px-3 py-1 flex items-center gap-2 ml-1"
           >
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 pulse-gold" />
-            <span style={{ color: '#aaa', fontSize: '11px' }}>Live</span>
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#4caf82' }} />
+            <span style={{ color: '#777', fontSize: '10px', fontWeight: 600 }}>Live</span>
           </div>
         </div>
 
-        {/* Center — Kory greeting */}
+        {/* Center */}
         <div className="text-center hidden md:block">
-          <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>Hello, Kory</div>
-          <div style={{ color: '#666', fontSize: '11px' }}>{date}</div>
+          <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>Good morning, Kory</div>
+          <div style={{ color: '#666', fontSize: '11px', marginTop: 1 }}>{date}</div>
         </div>
 
-        {/* Right — clock + actions */}
-        <div className="flex items-center gap-3">
-          <div style={{ color: '#fff', fontSize: '18px', fontWeight: 700, letterSpacing: '0.5px', fontVariantNumeric: 'tabular-nums' }}>
+        {/* Right */}
+        <div className="flex items-center gap-4">
+          <div style={{ color: '#fff', fontSize: '20px', fontWeight: 700, letterSpacing: '0.5px', fontVariantNumeric: 'tabular-nums' }}>
             {time}
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all"
-              style={{ border: '1px solid rgba(201,160,68,0.25)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+              style={{ border: '1px solid rgba(201,160,68,0.2)', background: 'rgba(255,255,255,0.03)' }}
               title="Refresh"
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
             >
               <RefreshCw size={13} style={{ color: '#c9a044' }} />
             </button>
             <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all relative"
-              style={{ border: '1px solid rgba(201,160,68,0.25)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all relative"
+              style={{ border: '1px solid rgba(201,160,68,0.2)', background: 'rgba(255,255,255,0.03)' }}
               title="Notifications"
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
             >
               <Bell size={13} style={{ color: '#c9a044' }} />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center font-bold" style={{ fontSize: 9 }}>
@@ -78,9 +83,11 @@ export default function Header() {
               </span>
             </button>
             <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all"
-              style={{ border: '1px solid rgba(201,160,68,0.25)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+              style={{ border: '1px solid rgba(201,160,68,0.2)', background: 'rgba(255,255,255,0.03)' }}
               title="Settings"
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
             >
               <Settings size={13} style={{ color: '#c9a044' }} />
             </button>

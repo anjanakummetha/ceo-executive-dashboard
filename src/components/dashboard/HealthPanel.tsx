@@ -139,7 +139,7 @@ export default function HealthPanel() {
       </div>
 
       {/* Tab selector */}
-      <div style={{ background: '#3d3d3d', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: '#2e2e2e', border: '1px solid rgba(201,160,68,0.15)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', padding: '0 12px' }}>
           {([
             { key: 'logs', label: 'Daily Logs', icon: Heart },

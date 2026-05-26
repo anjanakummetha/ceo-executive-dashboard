@@ -30,22 +30,22 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ background: '#2a2a2a', minHeight: '100vh' }}>
+    <div style={{ background: '#252525', minHeight: '100vh' }}>
       <Header />
-      <TabNav activeTab={activeTab} onTabChange={setActiveTab} badges={badges} />
+      <TabNav activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab)} badges={badges} />
 
-      <main className="max-w-[1600px] mx-auto px-4 py-5">
+      <main className="max-w-[1600px] mx-auto px-4 py-6">
         {activeTab === 'today'         && <div className="slide-in"><TodayTab /></div>}
         {activeTab === 'meetings'      && <div className="slide-in"><MeetingsTab /></div>}
         {activeTab === 'inbox'         && <div className="slide-in"><InboxTab /></div>}
         {activeTab === 'tasks'         && <div className="slide-in"><TasksTab /></div>}
         {activeTab === 'relationships' && <div className="slide-in"><RelationshipsTab /></div>}
         {activeTab === 'travel'        && <div className="slide-in"><TravelTab /></div>}
-        {activeTab === 'health'        && <div className="slide-in max-w-2xl mx-auto"><HealthPanel /></div>}
+        {activeTab === 'health'        && <div className="slide-in"><HealthPanel /></div>}
       </main>
 
-      <footer style={{ borderTop: '1px solid rgba(201,160,68,0.12)', padding: '12px 24px', textAlign: 'center', marginTop: 24 }}>
-        <span style={{ color: '#444', fontSize: '11px', letterSpacing: '0.5px' }}>
+      <footer style={{ borderTop: '1px solid rgba(201,160,68,0.1)', padding: '14px 24px', textAlign: 'center', marginTop: 24 }}>
+        <span style={{ color: '#3a3a3a', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}>
           Iconic Founders Group · CEO Executive Dashboard
         </span>
       </footer>
