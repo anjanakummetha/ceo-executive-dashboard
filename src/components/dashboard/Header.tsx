@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Settings, RefreshCw, Cloud } from 'lucide-react';
+import { Bell, Settings, RefreshCw } from 'lucide-react';
 
 export default function Header() {
   const [time, setTime] = useState('');
@@ -38,9 +38,9 @@ export default function Header() {
             </div>
             <div>
               <div className="text-[10px] tracking-[2px] uppercase font-semibold" style={{ color: '#c9a044' }}>
-                Iconic Founders
+                Iconic Founders Group
               </div>
-              <div className="text-white font-bold text-sm leading-none">CEO Command Center</div>
+              <div className="text-white font-bold text-sm leading-none">CEO Executive Dashboard</div>
             </div>
           </div>
 
@@ -59,13 +59,8 @@ export default function Header() {
           <div className="text-gray-400 text-xs">{date}</div>
         </div>
 
-        {/* Right — clock, weather, actions */}
+        {/* Right — clock and actions */}
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 text-gray-400 text-xs">
-            <Cloud size={14} style={{ color: '#c9a044' }} />
-            <span>72°F — Partly Cloudy</span>
-          </div>
-
           <div className="text-right">
             <div className="text-white font-bold text-lg leading-none tabular-nums">{time}</div>
             <div className="text-[10px] tracking-widest uppercase" style={{ color: '#c9a044' }}>

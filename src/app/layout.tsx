@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'CEO Command Center | Iconic Founders',
+  title: 'CEO Executive Dashboard | Iconic Founders Group',
   description: 'Executive dashboard for Kory — daily briefings, priorities, meetings, and team activity at a glance.',
 };
 

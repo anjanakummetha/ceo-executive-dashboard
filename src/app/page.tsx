@@ -63,7 +63,7 @@ export default function Dashboard() {
           IF
         </div>
         <span style={{ color: '#555', fontSize: '11px', letterSpacing: '0.5px' }}>
-          ICONIC FOUNDERS · CEO Command Center · Preserving Legacy
+          ICONIC FOUNDERS GROUP · CEO Executive Dashboard · Preserving Legacy
         </span>
       </footer>
     </div>
