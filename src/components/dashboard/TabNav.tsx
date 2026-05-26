@@ -1,4 +1,5 @@
 'use client';
+import type { ElementType } from 'react';
 
 import { LayoutDashboard, Calendar, Mail, CheckSquare, Plane, Heart, Users } from 'lucide-react';
 
@@ -10,7 +11,7 @@ interface TabNavProps {
   badges?: Partial<Record<TabId, number>>;
 }
 
-const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+const tabs: { id: TabId; label: string; icon: ElementType }[] = [
   { id: 'today',         label: 'Today',         icon: LayoutDashboard },
   { id: 'meetings',      label: 'Meetings',       icon: Calendar },
   { id: 'inbox',         label: 'Inbox',          icon: Mail },

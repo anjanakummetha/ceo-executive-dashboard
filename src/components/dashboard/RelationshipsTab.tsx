@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import type { ElementType } from 'react';
 import { Sparkles, MessageSquare, Clock, TrendingDown, TrendingUp, Minus, AlertTriangle, DollarSign, Copy, CheckCircle2 } from 'lucide-react';
 import { relationshipContacts, type RelationshipContact, type RelationshipHealth } from '@/lib/data';
 
-const healthConfig: Record<RelationshipHealth, { color: string; bg: string; border: string; label: string; icon: React.ElementType }> = {
+const healthConfig: Record<RelationshipHealth, { color: string; bg: string; border: string; label: string; icon: ElementType }> = {
   strong:  { color: '#4caf82', bg: 'rgba(76,175,130,0.12)',  border: 'rgba(76,175,130,0.3)',  label: 'Strong',  icon: TrendingUp },
   good:    { color: '#4a9ed6', bg: 'rgba(74,158,214,0.12)',  border: 'rgba(74,158,214,0.3)',  label: 'Good',    icon: Minus },
   cooling: { color: '#e09a44', bg: 'rgba(224,154,68,0.12)',  border: 'rgba(224,154,68,0.3)',  label: 'Cooling', icon: TrendingDown },

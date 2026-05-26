@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import type { ElementType } from 'react';
 import { Mail, Flag, ExternalLink, Sparkles, AlertCircle, Users, DollarSign, Heart, Megaphone, Scale, TrendingUp, ArrowRight, Copy, CheckCircle2, UserMinus } from 'lucide-react';
 import { emails, linkedInMessages, type Email, type EmailCategory, type EmailTriage } from '@/lib/data';
 
-const categoryConfig: Record<EmailCategory, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
+const categoryConfig: Record<EmailCategory, { label: string; color: string; bg: string; border: string; icon: ElementType }> = {
   urgent:   { label: 'Urgent',    color: '#e05252', bg: 'rgba(224,82,82,0.12)',    border: 'rgba(224,82,82,0.35)',    icon: AlertCircle },
   board:    { label: 'Board',     color: '#9b59b6', bg: 'rgba(155,89,182,0.12)',   border: 'rgba(155,89,182,0.35)',   icon: Users },
   finance:  { label: 'Finance',   color: '#4caf82', bg: 'rgba(76,175,130,0.12)',   border: 'rgba(76,175,130,0.35)',   icon: DollarSign },

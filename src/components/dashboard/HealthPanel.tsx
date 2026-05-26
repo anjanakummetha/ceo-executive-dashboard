@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ElementType } from 'react';
 import { Heart, Dumbbell, Droplets, ChevronLeft, ChevronRight, Plus, Sparkles, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
 import { healthLogs, performanceInsights } from '@/lib/data';
 
@@ -19,7 +20,7 @@ function Ring({ value, max, color, size = 56 }: { value: number; max: number; co
   );
 }
 
-function MetricCard({ icon: Icon, label, value, max, unit, color }: { icon: React.ElementType; label: string; value: number; max: number; unit: string; color: string }) {
+function MetricCard({ icon: Icon, label, value, max, unit, color }: { icon: ElementType; label: string; value: number; max: number; unit: string; color: string }) {
   const pct = Math.round((value / max) * 100);
   return (
     <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px', display: 'flex', flexDirection: 'column', gap: 8 }}>

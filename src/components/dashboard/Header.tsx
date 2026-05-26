@@ -21,77 +21,68 @@ export default function Header() {
   return (
     <header
       style={{
-        background: 'linear-gradient(135deg, #2a2a2a 0%, #323232 100%)',
-        borderBottom: '1px solid rgba(201, 160, 68, 0.3)',
+        background: 'linear-gradient(135deg, #252525 0%, #2e2e2e 100%)',
+        borderBottom: '1px solid rgba(201, 160, 68, 0.25)',
       }}
       className="sticky top-0 z-50 px-6 py-3"
     >
       <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-        {/* Left — Branding */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div
-              style={{ background: 'linear-gradient(135deg, #c9a044, #d4af60)' }}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-[#2a2a2a]"
-            >
-              IF
+        {/* Left — Brand name only */}
+        <div className="flex items-center gap-3">
+          <div>
+            <div style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase' }}>
+              Iconic Founders Group
             </div>
-            <div>
-              <div className="text-[10px] tracking-[2px] uppercase font-semibold" style={{ color: '#c9a044' }}>
-                Iconic Founders Group
-              </div>
-              <div className="text-white font-bold text-sm leading-none">CEO Executive Dashboard</div>
+            <div style={{ color: '#fff', fontSize: '13px', fontWeight: 700, letterSpacing: '0.3px', lineHeight: 1.2 }}>
+              CEO Executive Dashboard
             </div>
           </div>
 
           <div
-            style={{ background: 'rgba(201, 160, 68, 0.1)', borderColor: 'rgba(201, 160, 68, 0.25)' }}
-            className="border rounded-full px-3 py-1 flex items-center gap-2"
+            style={{ background: 'rgba(76,175,130,0.1)', border: '1px solid rgba(76,175,130,0.25)', borderRadius: 20 }}
+            className="px-3 py-1 flex items-center gap-2 ml-2"
           >
-            <div className="w-2 h-2 rounded-full bg-green-400 pulse-gold" />
-            <span className="text-xs text-gray-300">Live</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 pulse-gold" />
+            <span style={{ color: '#aaa', fontSize: '11px' }}>Live</span>
           </div>
         </div>
 
-        {/* Center — greeting */}
+        {/* Center — Kory greeting */}
         <div className="text-center hidden md:block">
-          <div className="text-white font-bold text-base">Hello, Kory</div>
-          <div className="text-gray-400 text-xs">{date}</div>
+          <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>Hello, Kory</div>
+          <div style={{ color: '#666', fontSize: '11px' }}>{date}</div>
         </div>
 
-        {/* Right — clock and actions */}
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-white font-bold text-lg leading-none tabular-nums">{time}</div>
-            <div className="text-[10px] tracking-widest uppercase" style={{ color: '#c9a044' }}>
-              Local Time
-            </div>
+        {/* Right — clock + actions */}
+        <div className="flex items-center gap-3">
+          <div style={{ color: '#fff', fontSize: '18px', fontWeight: 700, letterSpacing: '0.5px', fontVariantNumeric: 'tabular-nums' }}>
+            {time}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/10"
-              style={{ border: '1px solid rgba(201,160,68,0.3)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all"
+              style={{ border: '1px solid rgba(201,160,68,0.25)' }}
               title="Refresh"
             >
-              <RefreshCw size={14} style={{ color: '#c9a044' }} />
+              <RefreshCw size={13} style={{ color: '#c9a044' }} />
             </button>
             <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/10 relative"
-              style={{ border: '1px solid rgba(201,160,68,0.3)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all relative"
+              style={{ border: '1px solid rgba(201,160,68,0.25)' }}
               title="Notifications"
             >
-              <Bell size={14} style={{ color: '#c9a044' }} />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
+              <Bell size={13} style={{ color: '#c9a044' }} />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center font-bold" style={{ fontSize: 9 }}>
                 7
               </span>
             </button>
             <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/10"
-              style={{ border: '1px solid rgba(201,160,68,0.3)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all"
+              style={{ border: '1px solid rgba(201,160,68,0.25)' }}
               title="Settings"
             >
-              <Settings size={14} style={{ color: '#c9a044' }} />
+              <Settings size={13} style={{ color: '#c9a044' }} />
             </button>
           </div>
         </div>

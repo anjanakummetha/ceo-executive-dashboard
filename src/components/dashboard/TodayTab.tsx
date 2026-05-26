@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ElementType } from 'react';
 import { Sparkles, Flame, AlertTriangle, CheckCircle2, Clock, ChevronRight, TrendingUp, Users, DollarSign, Shield, Zap, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { aiPriorityItems, riskItems, crackItems, anxietyReducers, dailyBriefing, type AIPriorityItem } from '@/lib/data';
 
@@ -16,7 +17,7 @@ const sentimentConfig = {
   positive: { color: '#4caf82', bg: 'rgba(76,175,130,0.12)', label: 'OPPORTUNITY', glow: 'none' },
 };
 
-const riskCategoryIcon: Record<string, React.ElementType> = {
+const riskCategoryIcon: Record<string, ElementType> = {
   revenue: DollarSign, relationship: Users, deadline: Clock,
   team: Users, operational: AlertTriangle, health: Zap,
 };

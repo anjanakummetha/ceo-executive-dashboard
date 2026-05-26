@@ -30,7 +30,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ background: '#2e2e2e', minHeight: '100vh' }}>
+    <div style={{ background: '#2a2a2a', minHeight: '100vh' }}>
       <Header />
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} badges={badges} />
 
@@ -44,9 +44,10 @@ export default function Dashboard() {
         {activeTab === 'health'        && <div className="slide-in max-w-2xl mx-auto"><HealthPanel /></div>}
       </main>
 
-      <footer style={{ borderTop: '1px solid rgba(201,160,68,0.15)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }} className="mt-6">
-        <div style={{ background: 'linear-gradient(135deg, #c9a044, #d4af60)' }} className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-black text-[#2a2a2a]">IF</div>
-        <span style={{ color: '#555', fontSize: '11px', letterSpacing: '0.5px' }}>ICONIC FOUNDERS GROUP · CEO Executive Dashboard · Preserving Legacy</span>
+      <footer style={{ borderTop: '1px solid rgba(201,160,68,0.12)', padding: '12px 24px', textAlign: 'center', marginTop: 24 }}>
+        <span style={{ color: '#444', fontSize: '11px', letterSpacing: '0.5px' }}>
+          Iconic Founders Group · CEO Executive Dashboard
+        </span>
       </footer>
     </div>
   );
