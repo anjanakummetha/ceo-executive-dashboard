@@ -50,7 +50,7 @@ export default function Header() {
 
         {/* Center */}
         <div className="text-center hidden md:block">
-          <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>Good morning, Kory</div>
+          <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>Hello, Kory</div>
           <div style={{ color: '#666', fontSize: '11px', marginTop: 1 }}>{date}</div>
         </div>
 
