@@ -53,9 +53,9 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Center — Kory's greeting */}
+        {/* Center — greeting */}
         <div className="text-center hidden md:block">
-          <div className="text-white font-semibold text-base">Good morning, Kory</div>
+          <div className="text-white font-bold text-base">Hello, Kory</div>
           <div className="text-gray-400 text-xs">{date}</div>
         </div>
 
