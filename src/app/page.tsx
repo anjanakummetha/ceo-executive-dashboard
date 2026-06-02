@@ -1,8 +1,5 @@
-'use client';
-
-import { useState } from 'react';
 import Header from '@/components/dashboard/Header';
-import TabNav, { type TabId } from '@/components/dashboard/TabNav';
+import TabNav, { type TabId, TAB_IDS } from '@/components/dashboard/TabNav';
 import TodayTab from '@/components/dashboard/TodayTab';
 import MeetingsTab from '@/components/dashboard/MeetingsTab';
 import InboxTab from '@/components/dashboard/InboxTab';
@@ -18,8 +15,13 @@ const overdueTasks = asanaTasks.filter(t => t.status === 'overdue').length;
 const travelAlerts = travelSegments.filter(s => s.flagged).length;
 const relationshipAlerts = relationshipContacts.filter(c => c.health === 'cold' || c.health === 'cooling').length;
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<TabId>('today');
+interface Props {
+  searchParams: Promise<{ tab?: string }>;
+}
+
+export default async function Dashboard({ searchParams }: Props) {
+  const { tab } = await searchParams;
+  const activeTab: TabId = TAB_IDS.includes(tab as TabId) ? (tab as TabId) : 'today';
 
   const badges: Partial<Record<TabId, number>> = {
     inbox: unreadEmails,
@@ -30,22 +32,24 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ background: '#2a2a2a', minHeight: '100vh' }}>
+    <div style={{ background: '#252525', minHeight: '100vh' }}>
       <Header />
-      <TabNav activeTab={activeTab} onTabChange={setActiveTab} badges={badges} />
+      <TabNav activeTab={activeTab} badges={badges} />
 
-      <main className="max-w-[1600px] mx-auto px-4 py-5">
-        {activeTab === 'today'         && <div className="slide-in"><TodayTab /></div>}
-        {activeTab === 'meetings'      && <div className="slide-in"><MeetingsTab /></div>}
-        {activeTab === 'inbox'         && <div className="slide-in"><InboxTab /></div>}
-        {activeTab === 'tasks'         && <div className="slide-in"><TasksTab /></div>}
-        {activeTab === 'relationships' && <div className="slide-in"><RelationshipsTab /></div>}
-        {activeTab === 'travel'        && <div className="slide-in"><TravelTab /></div>}
-        {activeTab === 'health'        && <div className="slide-in max-w-2xl mx-auto"><HealthPanel /></div>}
+      <main className="max-w-[1600px] mx-auto px-4 py-6">
+        <div className="slide-in">
+          {activeTab === 'today'         && <TodayTab />}
+          {activeTab === 'meetings'      && <MeetingsTab />}
+          {activeTab === 'inbox'         && <InboxTab />}
+          {activeTab === 'tasks'         && <TasksTab />}
+          {activeTab === 'relationships' && <RelationshipsTab />}
+          {activeTab === 'travel'        && <TravelTab />}
+          {activeTab === 'health'        && <HealthPanel />}
+        </div>
       </main>
 
-      <footer style={{ borderTop: '1px solid rgba(201,160,68,0.12)', padding: '12px 24px', textAlign: 'center', marginTop: 24 }}>
-        <span style={{ color: '#444', fontSize: '11px', letterSpacing: '0.5px' }}>
+      <footer style={{ borderTop: '1px solid rgba(201,160,68,0.1)', padding: '14px 24px', textAlign: 'center', marginTop: 24 }}>
+        <span style={{ color: '#3a3a3a', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}>
           Iconic Founders Group · CEO Executive Dashboard
         </span>
       </footer>

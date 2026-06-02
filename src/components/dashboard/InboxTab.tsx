@@ -215,12 +215,12 @@ export default function InboxTab() {
             </div>
 
             {/* AI summary */}
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(139,92,246,0.12)', background: 'rgba(139,92,246,0.06)' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(201,160,68,0.1)', background: 'rgba(201,160,68,0.04)' }}>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles size={11} style={{ color: '#8b5cf6' }} />
-                <span style={{ color: '#a78bfa', fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px' }}>AI Analysis</span>
+                <Sparkles size={11} style={{ color: '#c9a044' }} />
+                <span style={{ color: '#c9a044', fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px' }}>AI Analysis</span>
               </div>
-              <p style={{ color: '#c8c0e8', fontSize: '12px', lineHeight: 1.5 }}>{selectedEmail.aiSummary}</p>
+              <p style={{ color: '#c8c080', fontSize: '12px', lineHeight: 1.5 }}>{selectedEmail.aiSummary}</p>
               {/* Triage recommendation */}
               <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ background: triageConfig[selectedEmail.aiTriage].bg, color: triageConfig[selectedEmail.aiTriage].color, fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: 20, border: `1px solid ${triageConfig[selectedEmail.aiTriage].color}30` }}>

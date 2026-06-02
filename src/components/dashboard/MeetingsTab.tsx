@@ -273,9 +273,9 @@ export default function MeetingsTab() {
                         <div
                           key={i}
                           style={{
-                            background: 'rgba(139,92,246,0.08)',
-                            border: '1px solid rgba(139,92,246,0.18)',
-                            borderLeft: '3px solid #8b5cf6',
+                            background: 'rgba(201,160,68,0.06)',
+                            border: '1px solid rgba(201,160,68,0.15)',
+                            borderLeft: '3px solid #c9a044',
                             borderRadius: '0 8px 8px 0',
                             padding: '9px 12px',
                             display: 'flex',
@@ -283,10 +283,10 @@ export default function MeetingsTab() {
                             alignItems: 'flex-start',
                           }}
                         >
-                          <span style={{ color: '#8b5cf6', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
+                          <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
                             {String(i + 1).padStart(2, '0')}
                           </span>
-                          <p style={{ color: '#d0c8f0', fontSize: '13px', lineHeight: 1.5 }}>{point}</p>
+                          <p style={{ color: '#d4d0c8', fontSize: '13px', lineHeight: 1.5 }}>{point}</p>
                         </div>
                       ))}
                     </div>
@@ -298,19 +298,19 @@ export default function MeetingsTab() {
                       {meeting.aiRelationshipContext ? (
                         <div
                           style={{
-                            background: 'rgba(139,92,246,0.06)',
-                            border: '1px solid rgba(139,92,246,0.18)',
+                            background: 'rgba(201,160,68,0.04)',
+                            border: '1px solid rgba(201,160,68,0.15)',
                             borderRadius: 10,
                             padding: '14px 16px',
                           }}
                         >
                           <div className="flex items-center gap-2 mb-3">
-                            <Link2 size={13} style={{ color: '#8b5cf6' }} />
-                            <span style={{ color: '#a78bfa', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                            <Link2 size={13} style={{ color: '#c9a044' }} />
+                            <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                               Relationship Intelligence
                             </span>
                           </div>
-                          <p style={{ color: '#c8c0e8', fontSize: '13px', lineHeight: 1.6 }}>
+                          <p style={{ color: '#c8c0a8', fontSize: '13px', lineHeight: 1.6 }}>
                             {meeting.aiRelationshipContext}
                           </p>
                         </div>
@@ -326,19 +326,19 @@ export default function MeetingsTab() {
                       {meeting.aiRecentNews ? (
                         <div
                           style={{
-                            background: 'rgba(139,92,246,0.06)',
-                            border: '1px solid rgba(139,92,246,0.18)',
+                            background: 'rgba(201,160,68,0.04)',
+                            border: '1px solid rgba(201,160,68,0.15)',
                             borderRadius: 10,
                             padding: '14px 16px',
                           }}
                         >
                           <div className="flex items-center gap-2 mb-3">
-                            <FileText size={13} style={{ color: '#8b5cf6' }} />
-                            <span style={{ color: '#a78bfa', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                            <FileText size={13} style={{ color: '#c9a044' }} />
+                            <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                               Recent Intelligence
                             </span>
                           </div>
-                          <p style={{ color: '#c8c0e8', fontSize: '13px', lineHeight: 1.6 }}>
+                          <p style={{ color: '#c8c0a8', fontSize: '13px', lineHeight: 1.6 }}>
                             {meeting.aiRecentNews}
                           </p>
                         </div>
@@ -356,8 +356,8 @@ export default function MeetingsTab() {
                           <div
                             key={attendee.name}
                             style={{
-                              background: 'rgba(139,92,246,0.06)',
-                              border: '1px solid rgba(139,92,246,0.18)',
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(201,160,68,0.15)',
                               borderRadius: 10,
                               padding: '12px 14px',
                               display: 'flex',
@@ -378,17 +378,17 @@ export default function MeetingsTab() {
                                 fontWeight: 700,
                                 color: '#2a2a2a',
                                 flexShrink: 0,
-                                border: '2px solid rgba(139,92,246,0.3)',
+                                border: '2px solid rgba(201,160,68,0.25)',
                               }}
                             >
                               {attendee.initials}
                             </div>
                             <div className="flex-1">
-                              <p style={{ color: '#e0d8f8', fontSize: '13px', fontWeight: 700 }}>{attendee.name}</p>
-                              <p style={{ color: '#a78bfa', fontSize: '11px', fontWeight: 600 }}>{attendee.role}</p>
-                              <p style={{ color: '#6b5a8a', fontSize: '11px' }}>{attendee.company}</p>
+                              <p style={{ color: '#f0f0f0', fontSize: '13px', fontWeight: 700 }}>{attendee.name}</p>
+                              <p style={{ color: '#c9a044', fontSize: '11px', fontWeight: 600 }}>{attendee.role}</p>
+                              <p style={{ color: '#777', fontSize: '11px' }}>{attendee.company}</p>
                               {attendee.bio && (
-                                <p style={{ color: '#b0a8cc', fontSize: '12px', lineHeight: 1.5, marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(139,92,246,0.15)' }}>
+                                <p style={{ color: '#aaa', fontSize: '12px', lineHeight: 1.5, marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                                   {attendee.bio}
                                 </p>
                               )}
