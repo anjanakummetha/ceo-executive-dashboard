@@ -20,6 +20,12 @@
 # production
 /build
 
+# local health data
+/data/health-logs.json
+/data/daily-briefing.json
+/data/last-briefing-run.json
+/data/ai-cache/
+
 # misc
 .DS_Store
 *.pem
@@ -32,6 +38,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

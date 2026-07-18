@@ -1,115 +1,315 @@
 'use client';
 
-import { useState } from 'react';
-import { Calendar, Video, MapPin, Phone, Flag, Sparkles, Users, FileText, Lightbulb, Link2 } from 'lucide-react';
-import { meetings, type Meeting } from '@/lib/data';
+import { useEffect, useState } from 'react';
+import type { ElementType } from 'react';
+import { Calendar, Video, MapPin, Phone, Flag, Sparkles, Users, FileText, Lightbulb, Link2, Mail, RefreshCw, AlertCircle, Clock, Ban } from 'lucide-react';
+import { type Meeting } from '@/lib/data';
+import { useSync } from '@/components/dashboard/SyncProvider';
+import { useAttendeeIntel } from '@/components/dashboard/AttendeeIntelProvider';
+import { isKoryAttendee } from '@/lib/outlook/meeting-people';
+import {
+  buildMeetingRelationshipSummary,
+  buildMeetingTalkingPoints,
+} from '@/lib/ai/meeting-local-prep';
+import type { AttendeeIntel } from '@/lib/ai/types';
+
+function intelKey(name: string, email?: string): string {
+  return email?.trim().toLowerCase() || name.trim().toLowerCase();
+}
+
+const confidenceColor = {
+  high: 'var(--success)',
+  medium: 'var(--gold-light)',
+  low: 'var(--text-muted)',
+} as const;
 
 const typeIcon = { video: Video, 'in-person': MapPin, phone: Phone };
-const typeColor = { video: '#4a9ed6', 'in-person': '#4caf82', phone: '#9b59b6' };
+const typeColor = { video: 'var(--info)', 'in-person': 'var(--success)', phone: '#9b59b6' };
 const typeLabel = { video: 'Video Call', 'in-person': 'In Person', phone: 'Phone' };
 
+function isRealMeeting(m: Meeting): boolean {
+  return (m.scheduleKind ?? 'meeting') === 'meeting';
+}
+
+function sortByStart(a: Meeting, b: Meeting): number {
+  return (a.startIso ?? '').localeCompare(b.startIso ?? '');
+}
+
+function ScheduleListRow({
+  meeting,
+  active,
+  isLast,
+  variant,
+  onSelect,
+}: {
+  meeting: Meeting;
+  active: boolean;
+  isLast: boolean;
+  variant: 'meeting' | 'other';
+  onSelect: () => void;
+}) {
+  const Icon: ElementType = variant === 'meeting' ? typeIcon[meeting.type] : Ban;
+  const color = variant === 'meeting' ? typeColor[meeting.type] : 'var(--text-muted)';
+
+  return (
+    <div
+      onClick={onSelect}
+      style={{
+        borderBottom: isLast ? 'none' : '1px solid var(--border-subtle)',
+        background: active ? 'rgba(201,160,68,0.07)' : 'transparent',
+        borderLeft: active ? '3px solid var(--gold-light)' : '3px solid transparent',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      }}
+      className="px-4 py-3 hover:bg-black/[0.04]"
+    >
+      <div className="flex items-start gap-3">
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: `${color}18`,
+            border: `1px solid ${color}35`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Icon size={15} style={{ color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p style={{ color: active ? '#e8d898' : 'var(--text-secondary)', fontSize: '13px', fontWeight: 600, lineHeight: 1.3 }}>
+            {meeting.title}
+          </p>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <span style={{ color, fontSize: '11px', fontWeight: 600 }}>{meeting.time}</span>
+            <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>·</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{meeting.duration}</span>
+            {meeting.calendarName && (
+              <>
+                <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>·</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '10px' }} className="truncate">{meeting.calendarName}</span>
+              </>
+            )}
+          </div>
+          {variant === 'meeting' ? (
+            <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex -space-x-1.5">
+                {meeting.attendees.slice(0, 3).map((a, i) => (
+                  <div
+                    key={`${meeting.id}-chip-${i}`}
+                    className="w-4 h-4 rounded-full flex items-center justify-center font-bold"
+                    style={{ background: a.color, fontSize: '7px', color: '#ffffff', border: '1.5px solid var(--bg-card)' }}
+                    title={a.name}
+                  >
+                    {a.initials.slice(0, 1)}
+                  </div>
+                ))}
+              </div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                {meeting.attendees.length} attendee{meeting.attendees.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontSize: '10px', marginTop: 6 }}>Block · hold · personal time</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ label, count, color }: { label: string; count: number; color: string }) {
+  return (
+    <div
+      className="px-4 py-2 flex items-center justify-between"
+      style={{ background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--border-subtle)' }}
+    >
+      <span style={{ color, fontSize: 10, fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase' }}>
+        {label}
+      </span>
+      <span style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }}>{count}</span>
+    </div>
+  );
+}
+
 export default function MeetingsTab() {
-  const [expandedId, setExpandedId] = useState<string>(meetings[0]?.id ?? '');
-  const [items, setItems] = useState<Meeting[]>(meetings);
-  const [aiSection, setAiSection] = useState<'points' | 'context' | 'news' | 'bios'>('points');
+  const { meetings: syncMeetings, syncedAt, loading: syncLoading, error: syncError, refresh } = useSync();
+  const { intelByKey, loading: intelLoading } = useAttendeeIntel();
+  const [expandedId, setExpandedId] = useState<string>('');
+  const [items, setItems] = useState<Meeting[]>([]);
+  const [aiSection, setAiSection] = useState<'points' | 'context' | 'emails' | 'bios'>('bios');
+
+  useEffect(() => {
+    setItems(syncMeetings);
+    setExpandedId((prev) => {
+      if (syncMeetings.some((m) => m.id === prev)) return prev;
+      const firstMeeting = syncMeetings.find((m) => isRealMeeting(m));
+      return firstMeeting?.id ?? syncMeetings[0]?.id ?? '';
+    });
+  }, [syncMeetings]);
+
+  const mergeIntel = (meeting: Meeting): Meeting => ({
+    ...meeting,
+    attendees: meeting.attendees.map((a) => {
+      if (isKoryAttendee(a.name)) return a;
+      const intel = intelByKey.get(intelKey(a.name, a.email));
+      return intel
+        ? {
+            ...a,
+            bio: intel.bio,
+            company: a.company || intel.emailContext?.companyGuess || a.company,
+          }
+        : a;
+    }),
+  });
+
+  const loading = syncLoading;
+  const error = syncError;
+
+  const expandedRaw = items.find((m) => m.id === expandedId);
+  const selectedMeeting =
+    expandedRaw && isRealMeeting(expandedRaw) ? mergeIntel(expandedRaw) : null;
+  const talkingPoints = selectedMeeting
+    ? buildMeetingTalkingPoints(selectedMeeting, intelByKey)
+    : [];
+  const relationshipSummary = selectedMeeting
+    ? buildMeetingRelationshipSummary(selectedMeeting, intelByKey)
+    : [];
+
+  function intelForAttendee(name: string, email?: string): AttendeeIntel | undefined {
+    return intelByKey.get(intelKey(name, email));
+  }
 
   const toggleFlag = (id: string) =>
     setItems(prev => prev.map(m => m.id === id ? { ...m, flagged: !m.flagged } : m));
+
+  const meetingItems = [...items.filter(isRealMeeting)].sort(sortByStart);
+  const otherItems = [...items.filter((m) => !isRealMeeting(m))].sort(sortByStart);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
       {/* ── Left: Meeting List ── */}
       <div className="xl:col-span-1">
         <div className="card">
-          <div className="p-4 border-b" style={{ borderColor: 'rgba(201,160,68,0.2)' }}>
-            <div className="section-header mb-0">
+          <div
+            className="p-4 border-b flex items-center justify-between gap-3"
+            style={{ borderColor: 'rgba(201,160,68,0.2)' }}
+          >
+            <div className="section-header mb-0 flex-1">
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{ background: 'rgba(201,160,68,0.15)', border: '1px solid rgba(201,160,68,0.3)' }}
               >
-                <Calendar size={13} style={{ color: '#c9a044' }} />
+                <Calendar size={13} style={{ color: 'var(--gold-light)' }} />
               </div>
-              <span className="section-title">Today&apos;s Schedule</span>
+              <div>
+                <span className="section-title">Today&apos;s Schedule</span>
+                <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 2 }}>
+                  {meetingItems.length} meetings · {otherItems.length} other · Mountain Time
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => refresh(true)}
+              disabled={loading}
+              title="Refresh from Outlook"
+              style={{
+                background: 'rgba(201,160,68,0.1)',
+                border: '1px solid rgba(201,160,68,0.25)',
+                borderRadius: 8,
+                padding: '4px 8px',
+                color: 'var(--gold-light)',
+                cursor: loading ? 'wait' : 'pointer',
+              }}
+            >
+              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
+            </button>
           </div>
+          {error && (
+            <p className="px-4 pb-2 flex items-center gap-1.5" style={{ color: '#e8a0a0', fontSize: 11 }}>
+              <AlertCircle size={12} /> {error}
+            </p>
+          )}
 
-          <div>
-            {items.map((meeting, idx) => {
-              const active = expandedId === meeting.id;
-              const Icon = typeIcon[meeting.type];
-              const color = typeColor[meeting.type];
-              return (
-                <div
-                  key={meeting.id}
-                  onClick={() => setExpandedId(meeting.id)}
-                  style={{
-                    borderBottom: idx < items.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                    background: active ? 'rgba(201,160,68,0.07)' : 'transparent',
-                    borderLeft: active ? '3px solid #c9a044' : '3px solid transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  className="px-4 py-3 hover:bg-white/5"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        background: `${color}18`,
-                        border: `1px solid ${color}35`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={15} style={{ color }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p style={{ color: active ? '#e8d898' : '#e0e0e0', fontSize: '13px', fontWeight: 600, lineHeight: 1.3 }}>
-                        {meeting.title}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span style={{ color, fontSize: '11px', fontWeight: 600 }}>{meeting.time}</span>
-                        <span style={{ color: '#555', fontSize: '10px' }}>·</span>
-                        <span style={{ color: '#777', fontSize: '11px' }}>{meeting.duration}</span>
-                        <span style={{ color: '#555', fontSize: '10px' }}>·</span>
-                        <span style={{ color: '#777', fontSize: '10px' }}>{meeting.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="flex -space-x-1.5">
-                          {meeting.attendees.slice(0, 3).map(a => (
-                            <div
-                              key={a.name}
-                              className="w-4 h-4 rounded-full flex items-center justify-center font-bold"
-                              style={{ background: a.color, fontSize: '7px', color: '#2a2a2a', border: '1.5px solid #3d3d3d' }}
-                              title={a.name}
-                            >
-                              {a.initials.slice(0, 1)}
-                            </div>
-                          ))}
-                        </div>
-                        <span style={{ color: '#666', fontSize: '10px' }}>
-                          {meeting.attendees.length} attendee{meeting.attendees.length > 1 ? 's' : ''}
-                        </span>
-                        {meeting.flagged && (
-                          <Flag size={10} fill="#c9a044" style={{ color: '#c9a044', marginLeft: 'auto' }} />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="max-h-[min(70vh,720px)] overflow-y-auto">
+            {!loading && items.length === 0 && (
+              <p className="px-4 py-8 text-center" style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                No events on your calendars today.
+              </p>
+            )}
+
+            {meetingItems.length > 0 && (
+              <>
+                <SectionLabel label="Meetings" count={meetingItems.length} color="var(--info)" />
+                {meetingItems.map((meeting, idx) => (
+                  <ScheduleListRow
+                    key={meeting.id}
+                    meeting={meeting}
+                    active={expandedId === meeting.id}
+                    isLast={idx === meetingItems.length - 1 && otherItems.length === 0}
+                    variant="meeting"
+                    onSelect={() => setExpandedId(meeting.id)}
+                  />
+                ))}
+              </>
+            )}
+
+            {otherItems.length > 0 && (
+              <>
+                <SectionLabel label="Everything else" count={otherItems.length} color="#888" />
+                {otherItems.map((meeting, idx) => (
+                  <ScheduleListRow
+                    key={meeting.id}
+                    meeting={meeting}
+                    active={expandedId === meeting.id}
+                    isLast={idx === otherItems.length - 1}
+                    variant="other"
+                    onSelect={() => setExpandedId(meeting.id)}
+                  />
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* ── Right: AI Briefing + Detail ── */}
       <div className="xl:col-span-2 space-y-4">
-        {items.filter(m => m.id === expandedId).map(meeting => {
+        {expandedRaw && !isRealMeeting(expandedRaw) && (
+          <div
+            style={{
+              background: 'var(--text-faint)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 12,
+              padding: '16px 18px',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Calendar block
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 }}>{expandedRaw.title}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6 }}>
+              {expandedRaw.time} · {expandedRaw.duration}
+              {expandedRaw.calendarName ? ` · ${expandedRaw.calendarName}` : ''}
+            </p>
+            {expandedRaw.location && (
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>{expandedRaw.location}</p>
+            )}
+            {expandedRaw.notes && (
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>{expandedRaw.notes}</p>
+            )}
+          </div>
+        )}
+
+        {selectedMeeting && (() => {
+          const meeting = selectedMeeting;
           const Icon = typeIcon[meeting.type];
           const color = typeColor[meeting.type];
           return (
@@ -117,7 +317,7 @@ export default function MeetingsTab() {
               {/* Meeting title bar */}
               <div
                 style={{
-                  background: '#3a3a3a',
+                  background: 'var(--text-faint)',
                   border: '1px solid rgba(201,160,68,0.25)',
                   borderRadius: 12,
                   padding: '14px 16px',
@@ -134,15 +334,15 @@ export default function MeetingsTab() {
                     <Icon size={17} style={{ color }} />
                   </div>
                   <div>
-                    <p style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>{meeting.title}</p>
+                    <p style={{ color: 'var(--text-primary)', fontSize: '15px', fontWeight: 700 }}>{meeting.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span style={{ color, fontSize: '12px', fontWeight: 600 }}>{meeting.time}</span>
-                      <span style={{ color: '#555' }}>·</span>
-                      <span style={{ color: '#888', fontSize: '12px' }}>{meeting.duration}</span>
-                      <span style={{ color: '#555' }}>·</span>
-                      <span style={{ color: '#888', fontSize: '12px' }}>{typeLabel[meeting.type]}</span>
-                      <span style={{ color: '#555' }}>·</span>
-                      <span style={{ color: '#888', fontSize: '12px' }}>{meeting.location}</span>
+                      <span style={{ color: 'var(--text-faint)' }}>·</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{meeting.duration}</span>
+                      <span style={{ color: 'var(--text-faint)' }}>·</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{typeLabel[meeting.type]}</span>
+                      <span style={{ color: 'var(--text-faint)' }}>·</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{meeting.location}</span>
                     </div>
                   </div>
                 </div>
@@ -150,10 +350,10 @@ export default function MeetingsTab() {
                   {meeting.type === 'video' && (
                     <button
                       style={{
-                        background: 'linear-gradient(135deg, #c9a044, #d4af60)',
+                        background: 'linear-gradient(135deg, var(--gold-light), #d4af60)',
                         borderRadius: 8,
                         padding: '6px 14px',
-                        color: '#2a2a2a',
+                        color: '#ffffff',
                         fontSize: '12px',
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -168,26 +368,25 @@ export default function MeetingsTab() {
                     </button>
                   )}
                   <button onClick={() => toggleFlag(meeting.id)} className="flag-btn">
-                    <Flag size={14} fill={meeting.flagged ? '#c9a044' : 'none'} style={{ color: meeting.flagged ? '#c9a044' : '#555' }} />
+                    <Flag size={14} fill={meeting.flagged ? 'var(--gold-light)' : 'none'} style={{ color: meeting.flagged ? 'var(--gold-light)' : 'var(--text-faint)' }} />
                   </button>
                 </div>
               </div>
 
-              {/* ── AI Pre-Meeting Briefing ── PROMINENT */}
+              {/* ── Pre-Meeting Intelligence (Outlook email + Hermes) ── */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, rgba(20,20,30,0.98) 0%, rgba(35,30,50,0.98) 100%)',
-                  border: '1px solid rgba(139,92,246,0.4)',
+                  background: 'var(--bg-panel)',
+                  border: '1px solid rgba(201,160,68,0.35)',
                   borderRadius: 12,
                   overflow: 'hidden',
-                  boxShadow: '0 0 30px rgba(139,92,246,0.1)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
-                {/* AI header */}
                 <div
                   style={{
-                    background: 'linear-gradient(90deg, rgba(139,92,246,0.25) 0%, rgba(139,92,246,0.08) 100%)',
-                    borderBottom: '1px solid rgba(139,92,246,0.25)',
+                    background: 'linear-gradient(90deg, var(--bg-nav) 0%, var(--bg-panel-accent) 100%)',
+                    borderBottom: '1px solid rgba(201,160,68,0.2)',
                     padding: '12px 16px',
                     display: 'flex',
                     alignItems: 'center',
@@ -200,45 +399,44 @@ export default function MeetingsTab() {
                         width: 30,
                         height: 30,
                         borderRadius: 8,
-                        background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                        background: 'linear-gradient(135deg, var(--gold-light), #d4af60)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      <Sparkles size={14} className="text-white" />
+                      <Sparkles size={14} className="text-[#2c2824]" />
                     </div>
                     <div>
-                      <div style={{ color: '#a78bfa', fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-                        AI Pre-Meeting Briefing
+                      <div style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                        Pre-Meeting Intelligence
                       </div>
-                      <div style={{ color: '#7c6aa0', fontSize: '10px' }}>
-                        Generated for {meeting.title}
+                      <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                        Outlook email history · one Hermes pass per day
                       </div>
                     </div>
                   </div>
                   <div
                     style={{
-                      background: 'rgba(139,92,246,0.15)',
-                      border: '1px solid rgba(139,92,246,0.3)',
+                      background: 'rgba(201,160,68,0.12)',
+                      border: '1px solid rgba(201,160,68,0.3)',
                       borderRadius: 20,
                       padding: '3px 10px',
-                      color: '#a78bfa',
+                      color: 'var(--gold-light)',
                       fontSize: '10px',
                       fontWeight: 700,
                     }}
                   >
-                    ✦ AI POWERED
+                    ✦ HERMES
                   </div>
                 </div>
 
-                {/* AI section tabs */}
-                <div style={{ borderBottom: '1px solid rgba(139,92,246,0.15)', padding: '0 16px', display: 'flex', gap: 0, overflowX: 'auto' }}>
+                <div style={{ borderBottom: '1px solid var(--border-subtle)', padding: '0 16px', display: 'flex', gap: 0, overflowX: 'auto' }}>
                   {([
-                    { key: 'points', label: 'Talking Points', icon: Lightbulb },
-                    { key: 'context', label: 'Relationship Context', icon: Link2 },
-                    { key: 'news', label: 'Recent Intel', icon: FileText },
                     { key: 'bios', label: 'Attendee Bios', icon: Users },
+                    { key: 'emails', label: 'Email History', icon: Mail },
+                    { key: 'context', label: 'Relationship', icon: Link2 },
+                    { key: 'points', label: 'Talking Points', icon: Lightbulb },
                   ] as const).map(({ key, label, icon: TabIcon }) => (
                     <button
                       key={key}
@@ -247,10 +445,10 @@ export default function MeetingsTab() {
                         padding: '9px 13px',
                         fontSize: '11px',
                         fontWeight: aiSection === key ? 700 : 500,
-                        color: aiSection === key ? '#a78bfa' : '#555',
+                        color: aiSection === key ? 'var(--gold-light)' : 'var(--text-faint)',
                         background: 'none',
                         border: 'none',
-                        borderBottom: aiSection === key ? '2px solid #8b5cf6' : '2px solid transparent',
+                        borderBottom: aiSection === key ? '2px solid var(--gold-primary)' : '2px solid transparent',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -266,16 +464,18 @@ export default function MeetingsTab() {
                 </div>
 
                 <div className="p-4">
-                  {/* Talking Points */}
-                  {aiSection === 'points' && meeting.aiTalkingPoints && (
+                  {intelLoading && (
+                    <p style={{ color: 'var(--gold-light)', fontSize: 12, marginBottom: 10 }}>Loading attendee intel from cached inbox…</p>
+                  )}
+                  {aiSection === 'points' && (
                     <div className="slide-in space-y-2">
-                      {meeting.aiTalkingPoints.map((point, i) => (
+                      {talkingPoints.length > 0 ? talkingPoints.map((point, i) => (
                         <div
                           key={i}
                           style={{
                             background: 'rgba(201,160,68,0.06)',
                             border: '1px solid rgba(201,160,68,0.15)',
-                            borderLeft: '3px solid #c9a044',
+                            borderLeft: '3px solid var(--gold-light)',
                             borderRadius: '0 8px 8px 0',
                             padding: '9px 12px',
                             display: 'flex',
@@ -283,19 +483,20 @@ export default function MeetingsTab() {
                             alignItems: 'flex-start',
                           }}
                         >
-                          <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
+                          <span style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
                             {String(i + 1).padStart(2, '0')}
                           </span>
                           <p style={{ color: '#d4d0c8', fontSize: '13px', lineHeight: 1.5 }}>{point}</p>
                         </div>
-                      ))}
+                      )) : (
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No talking points yet — open after attendee intel loads or when emails exist for attendees.</p>
+                      )}
                     </div>
                   )}
 
-                  {/* Relationship Context */}
                   {aiSection === 'context' && (
                     <div className="slide-in">
-                      {meeting.aiRelationshipContext ? (
+                      {relationshipSummary ? (
                         <div
                           style={{
                             background: 'rgba(201,160,68,0.04)',
@@ -305,58 +506,69 @@ export default function MeetingsTab() {
                           }}
                         >
                           <div className="flex items-center gap-2 mb-3">
-                            <Link2 size={13} style={{ color: '#c9a044' }} />
-                            <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                            <Link2 size={13} style={{ color: 'var(--gold-light)' }} />
+                            <span style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                               Relationship Intelligence
                             </span>
                           </div>
                           <p style={{ color: '#c8c0a8', fontSize: '13px', lineHeight: 1.6 }}>
-                            {meeting.aiRelationshipContext}
+                            {relationshipSummary}
                           </p>
                         </div>
                       ) : (
-                        <p style={{ color: '#666', fontSize: '13px' }}>No relationship context available for this meeting.</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No Outlook email thread found for these attendees in the cached inbox window.</p>
                       )}
                     </div>
                   )}
 
-                  {/* Recent News / Intel */}
-                  {aiSection === 'news' && (
-                    <div className="slide-in">
-                      {meeting.aiRecentNews ? (
-                        <div
-                          style={{
-                            background: 'rgba(201,160,68,0.04)',
-                            border: '1px solid rgba(201,160,68,0.15)',
-                            borderRadius: 10,
-                            padding: '14px 16px',
-                          }}
-                        >
-                          <div className="flex items-center gap-2 mb-3">
-                            <FileText size={13} style={{ color: '#c9a044' }} />
-                            <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                              Recent Intelligence
-                            </span>
+                  {aiSection === 'emails' && (
+                    <div className="slide-in space-y-3">
+                      {meeting.attendees.filter((a) => !isKoryAttendee(a.name)).map((a, i) => {
+                        const intel = intelForAttendee(a.name, a.email);
+                        const snippets = intel?.emailContext?.snippets ?? [];
+                        return (
+                          <div
+                            key={`${meeting.id}-em-${i}`}
+                            style={{
+                              background: 'rgba(0,0,0,0.03)',
+                              border: '1px solid var(--border-subtle)',
+                              borderRadius: 10,
+                              padding: '12px 14px',
+                            }}
+                          >
+                            <p style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 700 }}>{a.name}</p>
+                            {snippets.length === 0 ? (
+                              <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 6 }}>No matching messages in today&apos;s inbox cache.</p>
+                            ) : (
+                              snippets.map((s, j) => (
+                                <div key={j} style={{ marginTop: 8, paddingTop: 8, borderTop: j ? '1px solid var(--border-subtle)' : 'none' }}>
+                                  <p style={{ color: 'var(--gold-light)', fontSize: 10, fontWeight: 700 }}>
+                                    {s.direction === 'from_them' ? 'FROM THEM' : 'TO THEM'} · {s.time}
+                                  </p>
+                                  <p style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>{s.subject}</p>
+                                  <p style={{ color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.5 }}>{s.preview}</p>
+                                </div>
+                              ))
+                            )}
                           </div>
-                          <p style={{ color: '#c8c0a8', fontSize: '13px', lineHeight: 1.6 }}>
-                            {meeting.aiRecentNews}
-                          </p>
-                        </div>
-                      ) : (
-                        <p style={{ color: '#666', fontSize: '13px' }}>No recent news or intel available for attendees.</p>
-                      )}
+                        );
+                      })}
                     </div>
                   )}
 
-                  {/* Attendee Bios */}
                   {aiSection === 'bios' && (
                     <div className="slide-in">
+                      {meeting.attendees.length === 0 && (
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No external attendees on this invite.</p>
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {meeting.attendees.map(attendee => (
+                        {meeting.attendees.filter((a) => !isKoryAttendee(a.name)).map((attendee, i) => {
+                          const intel = intelForAttendee(attendee.name, attendee.email);
+                          return (
                           <div
-                            key={attendee.name}
+                            key={`${meeting.id}-bio-${i}`}
                             style={{
-                              background: 'rgba(255,255,255,0.03)',
+                              background: 'rgba(0,0,0,0.03)',
                               border: '1px solid rgba(201,160,68,0.15)',
                               borderRadius: 10,
                               padding: '12px 14px',
@@ -376,7 +588,7 @@ export default function MeetingsTab() {
                                 justifyContent: 'center',
                                 fontSize: '12px',
                                 fontWeight: 700,
-                                color: '#2a2a2a',
+                                color: '#ffffff',
                                 flexShrink: 0,
                                 border: '2px solid rgba(201,160,68,0.25)',
                               }}
@@ -384,17 +596,33 @@ export default function MeetingsTab() {
                               {attendee.initials}
                             </div>
                             <div className="flex-1">
-                              <p style={{ color: '#f0f0f0', fontSize: '13px', fontWeight: 700 }}>{attendee.name}</p>
-                              <p style={{ color: '#c9a044', fontSize: '11px', fontWeight: 600 }}>{attendee.role}</p>
-                              <p style={{ color: '#777', fontSize: '11px' }}>{attendee.company}</p>
+                              <p style={{ color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700 }}>{attendee.name}</p>
+                              {attendee.company ? (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{attendee.company}</p>
+                              ) : null}
+                              {intel && (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    marginTop: 4,
+                                    fontSize: 9,
+                                    fontWeight: 700,
+                                    color: confidenceColor[intel.confidence],
+                                    textTransform: 'uppercase',
+                                  }}
+                                >
+                                  {intel.confidence} confidence
+                                </span>
+                              )}
                               {attendee.bio && (
-                                <p style={{ color: '#aaa', fontSize: '12px', lineHeight: 1.5, marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.5, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border-subtle)' }}>
                                   {attendee.bio}
                                 </p>
                               )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -406,8 +634,8 @@ export default function MeetingsTab() {
                 {meeting.agenda && (
                   <div className="card p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <FileText size={13} style={{ color: '#c9a044' }} />
-                      <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                      <FileText size={13} style={{ color: 'var(--gold-light)' }} />
+                      <span style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
                         Agenda
                       </span>
                     </div>
@@ -424,8 +652,8 @@ export default function MeetingsTab() {
                     }}
                   >
                     <div className="flex items-center gap-2 mb-3">
-                      <Lightbulb size={13} style={{ color: '#c9a044' }} />
-                      <span style={{ color: '#c9a044', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                      <Lightbulb size={13} style={{ color: 'var(--gold-light)' }} />
+                      <span style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
                         Prep Notes
                       </span>
                     </div>
@@ -435,7 +663,7 @@ export default function MeetingsTab() {
               </div>
             </div>
           );
-        })}
+        })()}
       </div>
     </div>
   );

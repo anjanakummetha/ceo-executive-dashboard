@@ -9,6 +9,8 @@ export type RelationshipHealth = 'strong' | 'good' | 'cooling' | 'cold';
 export interface Email {
   id: string;
   sender: string;
+  /** SMTP address when available from Outlook */
+  senderEmail?: string;
   senderInitials: string;
   senderColor: string;
   subject: string;
@@ -24,18 +26,28 @@ export interface Email {
   sentimentScore: number; // -1 (negative) to +1 (positive)
   draftReply?: string;
   delegateTo?: string;
+  /** Primary To: recipient (live Outlook inbox). */
+  recipient?: string;
+  /** Open in Outlook on the web. */
+  webLink?: string;
 }
+
+export const HERMES_SUMMARY_PLACEHOLDER =
+  'AI summary not set up yet — Hermes not connected.';
 
 // ─── MEETINGS ──────────────────────────────────────────────────────────────
 
 export interface Attendee {
   name: string;
+  email?: string;
   role: string;
   company: string;
   initials: string;
   color: string;
   bio?: string;
 }
+
+export type ScheduleKind = 'meeting' | 'other';
 
 export interface Meeting {
   id: string;
@@ -45,6 +57,9 @@ export interface Meeting {
   attendees: Attendee[];
   location: string;
   type: 'video' | 'in-person' | 'phone';
+  scheduleKind?: ScheduleKind;
+  startIso?: string;
+  calendarName?: string;
   notes?: string;
   agenda?: string;
   flagged: boolean;
@@ -149,7 +164,10 @@ export interface TravelSegment {
   id: string;
   type: 'flight' | 'hotel' | 'car' | 'train' | 'restaurant' | 'other';
   title: string;
+  /** Display label, e.g. "Thu, Jun 5" or range */
   date: string;
+  /** YYYY-MM-DD for sorting / grouping */
+  sortDate?: string;
   time: string;
   endTime?: string;
   confirmationCode: string;
@@ -159,6 +177,9 @@ export interface TravelSegment {
   provider?: string;
   notes?: string;
   flagged: boolean;
+  calendarName?: string;
+  webLink?: string;
+  eventKind?: 'family' | 'travel' | 'birthday' | 'personal';
 }
 
 // ─── AI PRIORITIZATION ENGINE ──────────────────────────────────────────────

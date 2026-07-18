@@ -5,14 +5,18 @@ import { Phone, PhoneIncoming, PhoneOutgoing, Flag, CheckCircle2, MessageSquare 
 import { calls, type Call } from '@/lib/data';
 
 const typeConfig = {
-  'follow-up': { icon: PhoneOutgoing, color: '#c9a044', label: 'Follow-up' },
-  scheduled: { icon: Phone, color: '#4a9ed6', label: 'Scheduled' },
-  incoming: { icon: PhoneIncoming, color: '#4caf82', label: 'Incoming' },
+  'follow-up': { icon: PhoneOutgoing, color: 'var(--gold-light)', label: 'Follow-up' },
+  scheduled: { icon: Phone, color: 'var(--info)', label: 'Scheduled' },
+  incoming: { icon: PhoneIncoming, color: 'var(--success)', label: 'Incoming' },
   outgoing: { icon: PhoneOutgoing, color: '#9b59b6', label: 'Outgoing' },
 };
 
-export default function CallsPanel() {
-  const [items, setItems] = useState<Call[]>(calls);
+interface CallsPanelProps {
+  items?: Call[];
+}
+
+export default function CallsPanel({ items: initialItems = calls }: CallsPanelProps) {
+  const [items, setItems] = useState<Call[]>(initialItems);
 
   const toggleFlag = (id: string) =>
     setItems(prev => prev.map(c => c.id === id ? { ...c, flagged: !c.flagged } : c));
@@ -32,7 +36,7 @@ export default function CallsPanel() {
               className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{ background: 'rgba(201,160,68,0.15)', border: '1px solid rgba(201,160,68,0.3)' }}
             >
-              <Phone size={13} style={{ color: '#c9a044' }} />
+              <Phone size={13} style={{ color: 'var(--gold-light)' }} />
             </div>
             <span className="section-title">Calls &amp; Follow-ups</span>
           </div>
@@ -52,7 +56,7 @@ export default function CallsPanel() {
             <div
               key={call.id}
               style={{
-                borderBottom: idx < items.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                borderBottom: idx < items.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                 background: call.flagged ? 'rgba(201,160,68,0.04)' : 'transparent',
                 opacity: call.completed ? 0.5 : 1,
                 transition: 'all 0.2s',
@@ -62,7 +66,7 @@ export default function CallsPanel() {
               <div className="flex items-start gap-3">
                 {/* Avatar */}
                 <div
-                  className="avatar text-[#2a2a2a] flex-shrink-0"
+                  className="avatar text-white flex-shrink-0"
                   style={{ background: call.contactColor, fontSize: '11px' }}
                 >
                   {call.contactInitials}
@@ -73,7 +77,7 @@ export default function CallsPanel() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span style={{ color: '#e0e0e0', fontSize: '13px', fontWeight: 600 }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600 }}>
                           {call.contact}
                         </span>
                         {call.type === 'incoming' && (
@@ -83,40 +87,40 @@ export default function CallsPanel() {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <Icon size={10} style={{ color, flexShrink: 0 }} />
                         <span style={{ color, fontSize: '10px', fontWeight: 600 }}>{label}</span>
-                        <span style={{ color: '#555', fontSize: '10px' }}>·</span>
-                        <span style={{ color: '#888', fontSize: '10px' }}>{call.role}</span>
-                        <span style={{ color: '#555', fontSize: '10px' }}>·</span>
-                        <span style={{ color: '#888', fontSize: '10px' }}>{call.company}</span>
+                        <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>·</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{call.role}</span>
+                        <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>·</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{call.company}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button onClick={() => toggleFlag(call.id)} className="flag-btn">
-                        <Flag size={11} fill={call.flagged ? '#c9a044' : 'none'} style={{ color: call.flagged ? '#c9a044' : '#555' }} />
+                        <Flag size={11} fill={call.flagged ? 'var(--gold-light)' : 'none'} style={{ color: call.flagged ? 'var(--gold-light)' : 'var(--text-faint)' }} />
                       </button>
                       <button onClick={() => toggleComplete(call.id)} className="flag-btn">
-                        <CheckCircle2 size={11} fill={call.completed ? '#4caf82' : 'none'} style={{ color: call.completed ? '#4caf82' : '#555' }} />
+                        <CheckCircle2 size={11} fill={call.completed ? 'var(--success)' : 'none'} style={{ color: call.completed ? 'var(--success)' : 'var(--text-faint)' }} />
                       </button>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mt-1.5">
-                    <span style={{ color: '#666', fontSize: '11px' }}>{call.time}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{call.time}</span>
                     {call.duration && (
                       <>
-                        <span style={{ color: '#444', fontSize: '10px' }}>·</span>
-                        <span style={{ color: '#666', fontSize: '11px' }}>{call.duration}</span>
+                        <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>·</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{call.duration}</span>
                       </>
                     )}
                   </div>
 
                   <p
                     style={{
-                      color: '#888',
+                      color: 'var(--text-muted)',
                       fontSize: '11px',
                       lineHeight: 1.4,
                       marginTop: '4px',
-                      background: 'rgba(255,255,255,0.04)',
+                      background: 'var(--border-subtle)',
                       borderRadius: 6,
                       padding: '4px 8px',
                       borderLeft: `2px solid ${color}`,
@@ -134,7 +138,7 @@ export default function CallsPanel() {
                           border: '1px solid rgba(76,175,130,0.3)',
                           borderRadius: 6,
                           padding: '3px 8px',
-                          color: '#4caf82',
+                          color: 'var(--success)',
                           fontSize: '10px',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -152,7 +156,7 @@ export default function CallsPanel() {
                           border: '1px solid rgba(74,158,214,0.3)',
                           borderRadius: 6,
                           padding: '3px 8px',
-                          color: '#4a9ed6',
+                          color: 'var(--info)',
                           fontSize: '10px',
                           fontWeight: 600,
                           cursor: 'pointer',

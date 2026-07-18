@@ -1,31 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #2e2e2e;
-  --bg-secondary: #383838;
-  --bg-card: #3d3d3d;
-  --bg-card-hover: #444444;
-  --gold-primary: #c9a044;
-  --gold-light: #d4af60;
-  --gold-dark: #a8832e;
-  --gold-muted: rgba(201, 160, 68, 0.15);
-  --gold-border: rgba(201, 160, 68, 0.3);
-  --text-primary: #ffffff;
-  --text-secondary: #d0d0d0;
-  --text-muted: #9a9a9a;
-  --text-gold: #c9a044;
-  --danger: #e05252;
-  --danger-muted: rgba(224, 82, 82, 0.15);
-  --success: #4caf82;
-  --success-muted: rgba(76, 175, 130, 0.15);
-  --warning: #e09a44;
-  --warning-muted: rgba(224, 154, 68, 0.15);
-  --info: #4a9ed6;
-  --info-muted: rgba(74, 158, 214, 0.15);
+  /* Warm stone palette — soft off-whites, not pure white */
+  --bg-page: #e8e4dc;
+  --bg-nav: #efebe4;
+  --bg-panel: #f2efe8;
+  --bg-panel-accent: #ebe6dd;
+  --bg-card: #f5f2ec;
+  --bg-card-alt: #ece8e0;
+  --bg-secondary: #e0dbd2;
+  --bg-hover: #e5e0d6;
+  --bg-primary: var(--bg-page);
+  --gold-primary: #a8832e;
+  --gold-light: #c9a044;
+  --gold-dark: #8a6d26;
+  --gold-muted: rgba(168, 131, 46, 0.14);
+  --gold-border: rgba(138, 109, 38, 0.22);
+  --text-primary: #2c2824;
+  --text-secondary: #4a4540;
+  --text-muted: #6f6962;
+  --text-faint: #958f86;
+  --text-gold: #8a6d26;
+  --border-subtle: rgba(44, 40, 36, 0.1);
+  --danger: #b83838;
+  --danger-muted: rgba(184, 56, 56, 0.12);
+  --success: #2d7a56;
+  --success-muted: rgba(45, 122, 86, 0.12);
+  --warning: #a87218;
+  --warning-muted: rgba(168, 114, 24, 0.12);
+  --info: #2a648f;
+  --info-muted: rgba(42, 100, 143, 0.12);
+  --shadow-sm: 0 1px 2px rgba(44, 40, 36, 0.05), 0 2px 8px rgba(44, 40, 36, 0.04);
+  --shadow-md: 0 4px 12px rgba(44, 40, 36, 0.07), 0 8px 24px rgba(44, 40, 36, 0.05);
 }
 
 @theme inline {
-  --color-background: var(--bg-primary);
+  --color-background: var(--bg-page);
   --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -40,7 +50,7 @@ html {
 }
 
 body {
-  background: #252525;
+  background: var(--bg-page);
   color: var(--text-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -73,6 +83,7 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--gold-border);
   border-radius: 12px;
+  box-shadow: var(--shadow-sm);
 }
 
 .card-hover {
@@ -81,8 +92,22 @@ body {
 
 .card-hover:hover {
   border-color: var(--gold-primary);
-  box-shadow: 0 4px 20px rgba(201, 160, 68, 0.15);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+}
+
+.dashboard-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--gold-border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-panel-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-panel-accent);
 }
 
 .badge-gold {
@@ -99,7 +124,7 @@ body {
 .badge-danger {
   background: var(--danger-muted);
   color: var(--danger);
-  border: 1px solid rgba(224, 82, 82, 0.3);
+  border: 1px solid rgba(199, 62, 62, 0.25);
   border-radius: 20px;
   padding: 2px 10px;
   font-size: 11px;
@@ -109,7 +134,7 @@ body {
 .badge-success {
   background: var(--success-muted);
   color: var(--success);
-  border: 1px solid rgba(76, 175, 130, 0.3);
+  border: 1px solid rgba(45, 138, 94, 0.25);
   border-radius: 20px;
   padding: 2px 10px;
   font-size: 11px;
@@ -119,7 +144,7 @@ body {
 .badge-warning {
   background: var(--warning-muted);
   color: var(--warning);
-  border: 1px solid rgba(224, 154, 68, 0.3);
+  border: 1px solid rgba(184, 122, 26, 0.25);
   border-radius: 20px;
   padding: 2px 10px;
   font-size: 11px;
@@ -181,6 +206,26 @@ body {
   flex-shrink: 0;
 }
 
+.person-card {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.meeting-group {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.meeting-group-header {
+  padding: 12px 16px;
+  background: linear-gradient(180deg, var(--bg-panel-accent) 0%, var(--bg-card-alt) 100%);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
 .progress-bar {
   height: 6px;
   border-radius: 3px;
@@ -211,4 +256,27 @@ body {
 
 .slide-in {
   animation: slideIn 0.3s ease forwards;
+}
+
+/* Inbox tab: two side-by-side scroll panels */
+.inbox-scroll-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(480px, calc(100vh - 210px));
+  min-height: 280px;
+}
+
+.inbox-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 1024px) {
+  .inbox-scroll-panel {
+    max-height: min(520px, calc(100vh - 190px));
+  }
 }

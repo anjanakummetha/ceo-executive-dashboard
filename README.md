@@ -70,9 +70,45 @@ Derived from the Iconic Founders logo:
 
 ## Getting Started
 
+Requires **Node.js 20.9+** (Next.js 16).
+
 ```bash
 npm install
+cp .env.example .env.local   # then fill in Composio values
+npm run probe:asana          # verify Asana connection
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the dashboard.
+
+### Asana (Kory NON-IFG only)
+
+| Variable | Description |
+|----------|-------------|
+| `COMPOSIO_API_KEY` | From [Composio dashboard](https://platform.composio.dev) |
+| `COMPOSIO_CONNECTED_ACCOUNT_ID` | Asana connected account (`ca_…`) |
+| `COMPOSIO_USER_ID` | Entity user id from the connected account (`user_id` field) |
+| `ASANA_PROJECT_NAME` | Default: `Kory NON-IFG` |
+| `ASANA_PROJECT_GID` | Optional; auto-discovered via `npm run probe:asana` |
+
+API routes:
+
+- `GET /api/asana/status` — connection health
+- `GET /api/asana/tasks` — live tasks for the personal board
+
+Set `USE_MOCK_DATA=true` to skip Composio and use sample data in `src/lib/data.ts`.
+
+### Outlook (all calendars)
+
+| Variable | Description |
+|----------|-------------|
+| `COMPOSIO_OUTLOOK_CONNECTED_ACCOUNT_ID` | Outlook OAuth account (`ca_…`) |
+| `npm run probe:outlook` | Lists calendars + today’s events |
+
+Meetings and Travel read **every** calendar in the mailbox (primary, shared, family, master). Duplicate “(copy)” events are deduped.
+
+### Auth (optional)
+
+Login is **off by default** (single-user local dashboard). Before deploying to Hostinger, set `REQUIRE_AUTH=true`, `NEXT_PUBLIC_REQUIRE_AUTH=true`, plus `AUTH_SECRET`, `DASHBOARD_USERNAME`, and `DASHBOARD_PASSWORD`.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for Hermes (local → Hostinger) and scope vs company dashboard.

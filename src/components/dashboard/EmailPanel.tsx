@@ -5,10 +5,10 @@ import { Mail, Flag, ExternalLink } from 'lucide-react';
 import { emails, type Email } from '@/lib/data';
 
 const priorityDot = {
-  critical: '#e05252',
-  high: '#e09a44',
-  medium: '#c9a044',
-  low: '#4caf82',
+  critical: 'var(--danger)',
+  high: 'var(--warning)',
+  medium: 'var(--gold-light)',
+  low: 'var(--success)',
 };
 
 export default function EmailPanel() {
@@ -39,7 +39,7 @@ export default function EmailPanel() {
               className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{ background: 'rgba(201,160,68,0.15)', border: '1px solid rgba(201,160,68,0.3)' }}
             >
-              <Mail size={13} style={{ color: '#c9a044' }} />
+              <Mail size={13} style={{ color: 'var(--gold-light)' }} />
             </div>
             <span className="section-title">Inbox</span>
           </div>
@@ -48,7 +48,7 @@ export default function EmailPanel() {
               <span className="badge-danger">{unreadCount} Unread</span>
             )}
             <button
-              style={{ background: 'rgba(201,160,68,0.1)', border: '1px solid rgba(201,160,68,0.25)', borderRadius: 8, padding: '4px 8px', color: '#c9a044', fontSize: 11, cursor: 'pointer' }}
+              style={{ background: 'rgba(201,160,68,0.1)', border: '1px solid rgba(201,160,68,0.25)', borderRadius: 8, padding: '4px 8px', color: 'var(--gold-light)', fontSize: 11, cursor: 'pointer' }}
               title="Open email client"
             >
               <ExternalLink size={11} />
@@ -64,10 +64,10 @@ export default function EmailPanel() {
               onClick={() => setFilter(f)}
               style={{
                 background: filter === f ? 'rgba(201,160,68,0.2)' : 'transparent',
-                border: `1px solid ${filter === f ? 'rgba(201,160,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                border: `1px solid ${filter === f ? 'rgba(201,160,68,0.5)' : 'var(--border-subtle)'}`,
                 borderRadius: 6,
                 padding: '3px 10px',
-                color: filter === f ? '#c9a044' : '#888',
+                color: filter === f ? 'var(--gold-light)' : 'var(--text-muted)',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -88,12 +88,12 @@ export default function EmailPanel() {
             key={email.id}
             onClick={() => markRead(email.id)}
             style={{
-              borderBottom: idx < filtered.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none',
               background: email.unread ? 'rgba(201,160,68,0.04)' : 'transparent',
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
-            className="px-4 py-3 hover:bg-white/5"
+            className="px-4 py-3 hover:bg-black/[0.04]"
           >
             <div className="flex items-start gap-3">
               {/* Unread indicator */}
@@ -107,7 +107,7 @@ export default function EmailPanel() {
 
               {/* Avatar */}
               <div
-                className="avatar text-[#2a2a2a] flex-shrink-0"
+                className="avatar text-white flex-shrink-0"
                 style={{ background: email.senderColor, fontSize: '11px' }}
               >
                 {email.senderInitials}
@@ -117,12 +117,12 @@ export default function EmailPanel() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <span
-                    style={{ color: email.unread ? '#ffffff' : '#d0d0d0', fontSize: '13px', fontWeight: email.unread ? 600 : 400 }}
+                    style={{ color: email.unread ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '13px', fontWeight: email.unread ? 600 : 400 }}
                     className="truncate"
                   >
                     {email.sender}
                   </span>
-                  <span style={{ color: '#666', fontSize: '11px', flexShrink: 0 }}>{email.time}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px', flexShrink: 0 }}>{email.time}</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 mb-1">
@@ -132,14 +132,14 @@ export default function EmailPanel() {
                     title={email.priority}
                   />
                   <p
-                    style={{ color: email.unread ? '#e0e0e0' : '#aaa', fontSize: '12px', fontWeight: email.unread ? 600 : 400 }}
+                    style={{ color: email.unread ? 'var(--text-secondary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: email.unread ? 600 : 400 }}
                     className="truncate"
                   >
                     {email.subject}
                   </p>
                 </div>
 
-                <p style={{ color: '#777', fontSize: '11px' }} className="truncate">
+                <p style={{ color: 'var(--text-muted)', fontSize: '11px' }} className="truncate">
                   {email.preview}
                 </p>
 
@@ -149,12 +149,12 @@ export default function EmailPanel() {
                     <span
                       key={label}
                       style={{
-                        background: 'rgba(255,255,255,0.07)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'var(--border-subtle)',
+                        border: '1px solid var(--border-subtle)',
                         borderRadius: 4,
                         padding: '1px 6px',
                         fontSize: '10px',
-                        color: '#888',
+                        color: 'var(--text-muted)',
                       }}
                     >
                       {label}
@@ -170,8 +170,8 @@ export default function EmailPanel() {
               >
                 <Flag
                   size={12}
-                  fill={email.flagged ? '#c9a044' : 'none'}
-                  style={{ color: email.flagged ? '#c9a044' : '#555' }}
+                  fill={email.flagged ? 'var(--gold-light)' : 'none'}
+                  style={{ color: email.flagged ? 'var(--gold-light)' : 'var(--text-faint)' }}
                 />
               </button>
             </div>
@@ -184,9 +184,9 @@ export default function EmailPanel() {
         className="px-4 py-2.5 flex items-center justify-between"
         style={{ borderTop: '1px solid rgba(201,160,68,0.15)' }}
       >
-        <span style={{ color: '#666', fontSize: '11px' }}>{items.length} total messages</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{items.length} total messages</span>
         <button
-          style={{ color: '#c9a044', fontSize: '11px', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none' }}
+          style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none' }}
         >
           Open Gmail →
         </button>

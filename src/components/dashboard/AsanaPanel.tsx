@@ -5,17 +5,17 @@ import { Flag, ExternalLink, Clock } from 'lucide-react';
 import { asanaTasks, type AsanaTask } from '@/lib/data';
 
 const statusConfig = {
-  overdue: { color: '#e05252', bg: 'rgba(224,82,82,0.12)', label: 'OVERDUE' },
-  'due-today': { color: '#e09a44', bg: 'rgba(224,154,68,0.12)', label: 'DUE TODAY' },
-  'in-progress': { color: '#4a9ed6', bg: 'rgba(74,158,214,0.12)', label: 'IN PROGRESS' },
-  upcoming: { color: '#4caf82', bg: 'rgba(76,175,130,0.12)', label: 'UPCOMING' },
+  overdue: { color: 'var(--danger)', bg: 'rgba(224,82,82,0.12)', label: 'OVERDUE' },
+  'due-today': { color: 'var(--warning)', bg: 'rgba(224,154,68,0.12)', label: 'DUE TODAY' },
+  'in-progress': { color: 'var(--info)', bg: 'rgba(74,158,214,0.12)', label: 'IN PROGRESS' },
+  upcoming: { color: 'var(--success)', bg: 'rgba(76,175,130,0.12)', label: 'UPCOMING' },
 };
 
 const priorityColors = {
-  critical: '#e05252',
-  high: '#e09a44',
-  medium: '#c9a044',
-  low: '#4caf82',
+  critical: 'var(--danger)',
+  high: 'var(--warning)',
+  medium: 'var(--gold-light)',
+  low: 'var(--success)',
 };
 
 export default function AsanaPanel() {
@@ -40,7 +40,7 @@ export default function AsanaPanel() {
           <div className="section-header mb-0">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-black"
-              style={{ background: 'rgba(201,160,68,0.15)', border: '1px solid rgba(201,160,68,0.3)', color: '#c9a044' }}
+              style={{ background: 'rgba(201,160,68,0.15)', border: '1px solid rgba(201,160,68,0.3)', color: 'var(--gold-light)' }}
             >
               A
             </div>
@@ -49,7 +49,7 @@ export default function AsanaPanel() {
           <div className="flex items-center gap-1.5">
             {overdueCount > 0 && <span className="badge-danger">{overdueCount} Overdue</span>}
             <button
-              style={{ background: 'rgba(201,160,68,0.1)', border: '1px solid rgba(201,160,68,0.25)', borderRadius: 8, padding: '4px 8px', color: '#c9a044', fontSize: 11, cursor: 'pointer' }}
+              style={{ background: 'rgba(201,160,68,0.1)', border: '1px solid rgba(201,160,68,0.25)', borderRadius: 8, padding: '4px 8px', color: 'var(--gold-light)', fontSize: 11, cursor: 'pointer' }}
             >
               <ExternalLink size={11} />
             </button>
@@ -63,10 +63,10 @@ export default function AsanaPanel() {
               onClick={() => setFilter(f)}
               style={{
                 background: filter === f ? 'rgba(201,160,68,0.2)' : 'transparent',
-                border: `1px solid ${filter === f ? 'rgba(201,160,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                border: `1px solid ${filter === f ? 'rgba(201,160,68,0.5)' : 'var(--border-subtle)'}`,
                 borderRadius: 6,
                 padding: '3px 10px',
-                color: filter === f ? '#c9a044' : '#888',
+                color: filter === f ? 'var(--gold-light)' : 'var(--text-muted)',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -86,11 +86,11 @@ export default function AsanaPanel() {
             <div
               key={task.id}
               style={{
-                borderBottom: idx < filtered.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                 background: task.flagged ? 'rgba(201,160,68,0.04)' : 'transparent',
                 transition: 'all 0.2s',
               }}
-              className="px-4 py-3 hover:bg-white/5"
+              className="px-4 py-3 hover:bg-black/[0.04]"
             >
               <div className="flex items-start gap-2.5">
                 {/* Priority indicator */}
@@ -102,11 +102,11 @@ export default function AsanaPanel() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <p style={{ color: '#e0e0e0', fontSize: '13px', fontWeight: 500, lineHeight: 1.3 }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, lineHeight: 1.3 }}>
                       {task.title}
                     </p>
                     <button onClick={() => toggleFlag(task.id)} className="flag-btn flex-shrink-0">
-                      <Flag size={11} fill={task.flagged ? '#c9a044' : 'none'} style={{ color: task.flagged ? '#c9a044' : '#555' }} />
+                      <Flag size={11} fill={task.flagged ? 'var(--gold-light)' : 'none'} style={{ color: task.flagged ? 'var(--gold-light)' : 'var(--text-faint)' }} />
                     </button>
                   </div>
 
@@ -125,20 +125,20 @@ export default function AsanaPanel() {
                     >
                       {sc.label}
                     </span>
-                    <span style={{ color: '#666', fontSize: '10px' }}>{task.project}</span>
-                    <span style={{ color: '#555', fontSize: '10px' }}>·</span>
-                    <Clock size={9} style={{ color: '#666', flexShrink: 0 }} />
-                    <span style={{ color: '#666', fontSize: '10px' }}>{task.dueDate}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{task.project}</span>
+                    <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>·</span>
+                    <Clock size={9} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{task.dueDate}</span>
                   </div>
 
                   {/* Subtask progress */}
                   {task.subtasks && task.subtasks > 0 && (
                     <div className="mt-2">
                       <div className="flex items-center justify-between mb-1">
-                        <span style={{ color: '#666', fontSize: '10px' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
                           Subtasks: {task.completedSubtasks}/{task.subtasks}
                         </span>
-                        <span style={{ color: '#888', fontSize: '10px' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
                           {Math.round(((task.completedSubtasks || 0) / task.subtasks) * 100)}%
                         </span>
                       </div>
@@ -161,8 +161,8 @@ export default function AsanaPanel() {
         className="px-4 py-2.5 flex items-center justify-between"
         style={{ borderTop: '1px solid rgba(201,160,68,0.15)' }}
       >
-        <span style={{ color: '#666', fontSize: '11px' }}>{items.length} tasks assigned</span>
-        <button style={{ color: '#c9a044', fontSize: '11px', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none' }}>
+        <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{items.length} tasks assigned</span>
+        <button style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none' }}>
           Open Asana →
         </button>
       </div>
