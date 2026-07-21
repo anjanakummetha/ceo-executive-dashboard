@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
+// Next 16 renamed the `middleware` file convention to `proxy` — the old
+// src/middleware.ts silently stopped enforcing auth. This is the auth gate.
+
 const SESSION_COOKIE = 'ceo_dashboard_session';
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout'];
@@ -26,7 +29,7 @@ function authRequired(): boolean {
   return process.env.REQUIRE_AUTH === 'true';
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (!authRequired()) {
     return NextResponse.next();
   }

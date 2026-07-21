@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Flag, Clock, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import { Flag, Clock, ExternalLink, RefreshCw, AlertCircle, ListChecks } from 'lucide-react';
 import { asanaTasks as mockAsanaTasks, type AsanaTask } from '@/lib/data';
+import { taskAnalytics } from '@/lib/analytics/derive';
+import { StatTile, MiniBars, PanelHeading } from '@/components/dashboard/ui/StatKit';
 
 const asanaStatusConfig = {
   overdue: { color: 'var(--danger)', bg: 'rgba(224,82,82,0.12)', label: 'OVERDUE' },
@@ -75,8 +77,37 @@ export default function TasksTab() {
       })
     : null;
 
+  const taskStats = taskAnalytics(asanaItems);
+
   return (
     <div className="space-y-5 max-w-[1200px] mx-auto">
+      {/* ── Task Analytics ── */}
+      <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.66), rgba(248,245,238,0.5))', backdropFilter: 'blur(20px) saturate(150%)', WebkitBackdropFilter: 'blur(20px) saturate(150%)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 18, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+        <PanelHeading icon={<ListChecks size={16} />} title="Task Analytics" subtitle="Personal commitments — Kory NON-IFG" />
+        <div style={{ padding: '16px 20px' }}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatTile label="Overdue" value={String(taskStats.overdue)} hint={taskStats.overdue ? `oldest ${taskStats.maxDaysOverdue}d` : 'all clear'} tone={taskStats.overdue > 0 ? 'danger' : 'good'} />
+            <StatTile label="Due today" value={String(taskStats.dueToday)} hint="on the clock" tone={taskStats.dueToday > 0 ? 'warn' : 'neutral'} />
+            <StatTile label="In progress" value={String(taskStats.inProgress)} hint="active now" />
+            <StatTile label="Upcoming" value={String(taskStats.upcoming)} hint="on the horizon" />
+          </div>
+          {taskStats.byPriority.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>By priority</div>
+              <MiniBars items={taskStats.byPriority} />
+            </div>
+          )}
+          <div className="flex items-start gap-2" style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${taskStats.overdue > 0 ? 'var(--danger)' : 'var(--success)'}`, borderRadius: '0 10px 10px 0' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.5 }}>
+              {taskStats.overdue > 0 && taskStats.oldestOverdueTitle
+                ? `Start with "${taskStats.oldestOverdueTitle}" — ${taskStats.maxDaysOverdue} day${taskStats.maxDaysOverdue === 1 ? '' : 's'} overdue.`
+                : taskStats.dueToday > 0
+                ? `${taskStats.dueToday} task${taskStats.dueToday === 1 ? '' : 's'} due today — nothing overdue.`
+                : 'Nothing overdue — you’re on top of your commitments.'}
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="card flex flex-col">
         <div className="p-4 border-b" style={{ borderColor: 'rgba(201,160,68,0.2)' }}>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -153,7 +184,7 @@ export default function TasksTab() {
               }}
             >
               <AlertCircle size={14} style={{ color: 'var(--danger)', flexShrink: 0, marginTop: 1 }} />
-              <p style={{ color: '#e8a0a0', fontSize: 11, lineHeight: 1.4 }}>
+              <p style={{ color: 'var(--danger)', fontSize: 11, lineHeight: 1.4 }}>
                 {error} — showing fallback data.
               </p>
             </div>

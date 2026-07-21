@@ -21,7 +21,9 @@ export interface AttendeeIntel {
   meetingTime: string;
   emailContext: AttendeeEmailContext | null;
   bio: string;
+  introducedBy: string;
   relationshipContext: string;
+  angle: string;
   conversationTip: string;
   confidence: IntelConfidence;
 }

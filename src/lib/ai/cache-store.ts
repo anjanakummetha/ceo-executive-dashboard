@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { todayMtDateString } from '@/lib/outlook/time';
+import { dataPath } from '@/lib/paths';
 
-const AI_DIR = join(process.cwd(), 'data', 'ai-cache');
+const AI_DIR = dataPath('ai-cache');
 
 function pathFor(kind: string, id: string): string {
   const day = todayMtDateString();

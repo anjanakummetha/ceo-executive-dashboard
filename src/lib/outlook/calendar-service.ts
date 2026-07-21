@@ -3,7 +3,7 @@ import { dedupeEvents, mapOutlookEvent } from './map-event';
 import type { DashboardCalendarEvent, OutlookCalendar, OutlookEventRaw } from './types';
 import { mtDateKeyFromIso, mtDayBounds, mtRangeBounds, mtRangeBoundsAround, todayMtDateString } from './time';
 
-function useMockData(): boolean {
+function shouldUseMockData(): boolean {
   return process.env.USE_MOCK_DATA === 'true';
 }
 
@@ -54,7 +54,7 @@ async function fetchCalendarView(
 export async function fetchAllCalendarEvents(
   range: 'today' | 'week' | 'month' = 'today',
 ): Promise<DashboardCalendarEvent[]> {
-  if (useMockData()) return [];
+  if (shouldUseMockData()) return [];
 
   const bounds =
     range === 'today'
@@ -70,7 +70,7 @@ export async function fetchAllCalendarEventsBetween(
   start: string,
   end: string,
 ): Promise<DashboardCalendarEvent[]> {
-  if (useMockData()) return [];
+  if (shouldUseMockData()) return [];
 
   const calendars = await listOutlookCalendars();
   const all: DashboardCalendarEvent[] = [];

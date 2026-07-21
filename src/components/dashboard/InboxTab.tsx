@@ -5,6 +5,8 @@ import type { ElementType } from 'react';
 import { Mail, Flag, ExternalLink, Sparkles, AlertCircle, Users, DollarSign, Heart, Megaphone, Scale, TrendingUp, ArrowRight, Copy, CheckCircle2, UserMinus, RefreshCw } from 'lucide-react';
 import { emails, linkedInMessages, type Email, type EmailCategory, type EmailTriage } from '@/lib/data';
 import { useSync } from '@/components/dashboard/SyncProvider';
+import { inboxAnalytics } from '@/lib/analytics/derive';
+import { StatTile, MiniBars, PanelHeading } from '@/components/dashboard/ui/StatKit';
 
 const categoryConfig: Record<EmailCategory, { label: string; color: string; bg: string; border: string; icon: ElementType }> = {
   urgent:   { label: 'Urgent',    color: 'var(--danger)', bg: 'rgba(224,82,82,0.12)',    border: 'rgba(224,82,82,0.35)',    icon: AlertCircle },
@@ -145,8 +147,38 @@ export default function InboxTab() {
     }
   };
 
+  const inboxStats = inboxAnalytics(emailItems);
+
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto">
+      {/* ── Inbox Intelligence ── */}
+      <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.66), rgba(248,245,238,0.5))', backdropFilter: 'blur(20px) saturate(150%)', WebkitBackdropFilter: 'blur(20px) saturate(150%)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 18, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+        <PanelHeading icon={<Sparkles size={16} />} title="Inbox Intelligence" subtitle="Triaged by Hermes — what actually needs you" />
+        <div style={{ padding: '16px 20px' }}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatTile label="Needs reply" value={String(inboxStats.needsReply)} hint={`${inboxStats.unread} unread`} tone={inboxStats.needsReply > 0 ? 'warn' : 'good'} />
+            <StatTile label="VIP waiting" value={String(inboxStats.vipWaiting)} hint="board · finance · legal" tone={inboxStats.vipWaiting > 0 ? 'danger' : 'neutral'} />
+            <StatTile label="Flagged" value={String(inboxStats.flagged)} hint="you marked these" />
+            <StatTile label="Needs care" value={String(inboxStats.negativeCount)} hint="negative sentiment" tone={inboxStats.negativeCount > 0 ? 'warn' : 'neutral'} />
+          </div>
+          {inboxStats.byTriage.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Triage breakdown</div>
+              <MiniBars items={inboxStats.byTriage} />
+            </div>
+          )}
+          <div className="flex items-start gap-2" style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${inboxStats.vipWaiting > 0 ? 'var(--danger)' : inboxStats.needsReply > 0 ? 'var(--warning)' : 'var(--success)'}`, borderRadius: '0 10px 10px 0' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.5 }}>
+              {inboxStats.vipWaiting > 0
+                ? `${inboxStats.vipWaiting} board/finance/legal email${inboxStats.vipWaiting === 1 ? '' : 's'} waiting on you — clear these first.`
+                : inboxStats.needsReply > 0
+                ? `${inboxStats.needsReply} email${inboxStats.needsReply === 1 ? '' : 's'} need a reply. Nothing from the board is blocked.`
+                : 'Inbox under control — nothing urgent is waiting on you.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* AI Triage + Category Bar (mock demo only) */}
       {!isLiveInbox && (
         <div className="max-w-full">
@@ -156,9 +188,9 @@ export default function InboxTab() {
               <div style={{ width: 24, height: 24, borderRadius: 6, background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Sparkles size={12} className="text-white" />
               </div>
-              <span style={{ color: '#a78bfa', fontSize: '11px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>AI Communication Triage</span>
+              <span style={{ color: '#6d28d9', fontSize: '11px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>AI Communication Triage</span>
             </div>
-            <span style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 20, padding: '2px 8px', color: '#a78bfa', fontSize: '10px', fontWeight: 700 }}>✦ AI POWERED</span>
+            <span style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 20, padding: '2px 8px', color: '#6d28d9', fontSize: '10px', fontWeight: 700 }}>✦ AI POWERED</span>
           </div>
 
           {/* Triage summary row */}
@@ -239,7 +271,7 @@ export default function InboxTab() {
               </div>
             </div>
             {emailError && (
-              <p className="mb-2 flex items-center gap-1.5" style={{ color: '#e8a0a0', fontSize: 11 }}>
+              <p className="mb-2 flex items-center gap-1.5" style={{ color: 'var(--danger)', fontSize: 11 }}>
                 <AlertCircle size={12} /> {emailError} — showing fallback data.
               </p>
             )}
@@ -290,7 +322,7 @@ export default function InboxTab() {
                         <>
                           <div style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.18)', borderRadius: 5, padding: '4px 8px', marginBottom: 5, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
                             <Sparkles size={9} style={{ color: '#8b5cf6', flexShrink: 0, marginTop: 2 }} />
-                            <p style={{ color: '#b0a0d8', fontSize: '11px', lineHeight: 1.4 }}>{email.aiSummary}</p>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '11px', lineHeight: 1.4 }}>{email.aiSummary}</p>
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span style={{ background: triageCfg.bg, border: `1px solid ${triageCfg.color}30`, borderRadius: 20, padding: '1px 7px', color: triageCfg.color, fontSize: '9px', fontWeight: 800 }}>{triageCfg.label}</span>
@@ -445,7 +477,7 @@ export default function InboxTab() {
                   <Sparkles size={11} style={{ color: 'var(--gold-light)' }} />
                   <span style={{ color: 'var(--gold-light)', fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px' }}>AI Analysis</span>
                 </div>
-                <p style={{ color: '#c8c080', fontSize: '12px', lineHeight: 1.5 }}>{selectedEmail.aiSummary}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: 1.5 }}>{selectedEmail.aiSummary || (aiAnalyzing ? 'Hermes analyzing…' : 'Hermes prioritizes your top messages — this one wasn’t in today’s analyzed set. Open it in Outlook for the full text.')}</p>
                 <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ background: triageConfig[selectedEmail.aiTriage].bg, color: triageConfig[selectedEmail.aiTriage].color, fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: 20, border: `1px solid ${triageConfig[selectedEmail.aiTriage].color}30` }}>
                     AI says: {triageConfig[selectedEmail.aiTriage].label}
@@ -456,7 +488,7 @@ export default function InboxTab() {
 
             {/* Email preview */}
             <div style={{ padding: '10px 14px' }}>
-              <p style={{ color: '#c0c0c0', fontSize: '12px', lineHeight: 1.6 }}>{selectedEmail.preview || 'No preview available.'}</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: 1.6 }}>{selectedEmail.preview || 'No preview available.'}</p>
             </div>
 
             {/* AI Draft Reply */}
@@ -466,7 +498,7 @@ export default function InboxTab() {
                   <Sparkles size={10} style={{ color: 'var(--success)' }} />
                   <span style={{ color: 'var(--success)', fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px' }}>AI Draft Reply</span>
                 </div>
-                <p style={{ color: '#b0d8c0', fontSize: '12px', lineHeight: 1.5, fontStyle: 'italic' }}>&ldquo;{selectedEmail.draftReply}&rdquo;</p>
+                <p style={{ color: 'var(--success)', fontSize: '12px', lineHeight: 1.5, fontStyle: 'italic' }}>&ldquo;{selectedEmail.draftReply}&rdquo;</p>
                 <div className="flex gap-2 mt-2">
                   <button onClick={copyDraft} style={{ background: copiedDraft ? 'rgba(76,175,130,0.2)' : 'rgba(76,175,130,0.12)', border: `1px solid ${copiedDraft ? 'rgba(76,175,130,0.4)' : 'rgba(76,175,130,0.25)'}`, borderRadius: 6, padding: '4px 10px', color: 'var(--success)', fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
                     {copiedDraft ? <><CheckCircle2 size={9} />Copied</> : <><Copy size={9} />Copy</>}

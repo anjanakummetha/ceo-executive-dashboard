@@ -1,6 +1,13 @@
 import type { Attendee, Meeting } from '@/lib/data';
 
-export type TodayPerson = Attendee & { meetingTitle: string; meetingTime: string };
+export type TodayPerson = Attendee & {
+  meetingTitle: string;
+  meetingTime: string;
+  introducedBy?: string;
+  relationshipContext?: string;
+  angle?: string;
+  conversationTip?: string;
+};
 
 const KORY_PATTERN = /kory\s*mitchell/i;
 

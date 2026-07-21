@@ -19,7 +19,8 @@ export async function GET(request: Request) {
   }
 }
 
-/** Simulate 4:45 AM MT cron — generates briefing + email draft, does NOT send */
+/** Generate today's briefing + a copyable email draft. This dashboard never
+ * sends email — the Lexi agent owns the 4:45 AM Teams briefing delivery. */
 export async function POST() {
   try {
     const record = await generateDailyBriefing();
@@ -28,7 +29,7 @@ export async function POST() {
       briefing: record,
       emailDraft: record.emailDraft,
       emailSent: false,
-      note: 'Email draft prepared only. Set BRIEFING_SEND_ENABLED=true and wire SMTP to send.',
+      note: 'Draft only — copy from here. Delivery is handled by the Lexi agent (Teams), not this dashboard.',
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Briefing generation failed';

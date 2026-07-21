@@ -15,10 +15,15 @@ export async function GET() {
       });
     }
 
+    // LinkedIn on Composio only exposes profile info (no message inbox); if the
+    // connection is unset or the call fails, degrade quietly rather than erroring.
+    if (!process.env.COMPOSIO_LINKEDIN_CONNECTED_ACCOUNT_ID) {
+      return NextResponse.json({ available: false, messages: [], reason: 'not connected' });
+    }
     const result = await fetchLinkedInNotifications();
-    return NextResponse.json({ ...result, source: 'composio' });
+    return NextResponse.json({ ...result, available: true, source: 'composio' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load LinkedIn';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ available: false, messages: [], reason: message });
   }
 }

@@ -16,7 +16,7 @@ import {
   type DailyBriefingRecord,
 } from '@/lib/briefing/store';
 import { extractJson } from '@/lib/hermes/parse-json';
-import { runHermesCompletion } from '@/lib/hermes/cli';
+import { runHermesCompletion, runHermesResearch } from '@/lib/hermes/cli';
 import { buildTodayPeopleFromMeetings } from '@/lib/outlook/meeting-people';
 import { todayMtDateString } from '@/lib/outlook/time';
 import { loadTodaySnapshot, type TodaySnapshot } from '@/lib/sync/today-snapshot';
@@ -139,12 +139,14 @@ export async function generateAttendeeIntel(snapshot?: TodaySnapshot): Promise<A
     };
   });
 
-  const raw = await runHermesCompletion(attendeeIntelPrompt(promptPeople, data.meetings));
+  const raw = await runHermesResearch(attendeeIntelPrompt(promptPeople, data.meetings));
   const parsed = extractJson<{
     people: Array<{
       name: string;
       bio: string;
+      introducedBy?: string;
       relationshipContext?: string;
+      angle?: string;
       conversationTip?: string;
       confidence?: string;
     }>;
@@ -163,7 +165,9 @@ export async function generateAttendeeIntel(snapshot?: TodaySnapshot): Promise<A
       meetingTime: p.meetingTime,
       emailContext,
       bio: ai?.bio ?? 'No AI bio generated.',
+      introducedBy: ai?.introducedBy ?? '',
       relationshipContext: ai?.relationshipContext ?? '',
+      angle: ai?.angle ?? '',
       conversationTip: ai?.conversationTip ?? '',
       confidence: normalizeConfidence(ai?.confidence),
     };

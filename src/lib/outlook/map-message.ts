@@ -1,5 +1,4 @@
 import type { Email } from '@/lib/data';
-import { HERMES_SUMMARY_PLACEHOLDER } from '@/lib/data';
 import { formatRelativeTime } from '@/lib/time/format';
 import type { OutlookMessageRaw, OutlookRecipient } from './types';
 
@@ -53,7 +52,7 @@ export function mapOutlookMessageToEmail(msg: OutlookMessageRaw): Email {
     labels: [],
     aiCategory: 'team',
     aiTriage: 'fyi',
-    aiSummary: HERMES_SUMMARY_PLACEHOLDER,
+    aiSummary: '',
     sentimentScore: 0,
     webLink: msg.webLink,
   };

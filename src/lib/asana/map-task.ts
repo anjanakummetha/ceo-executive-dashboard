@@ -27,7 +27,7 @@ function parsePriority(task: AsanaApiTask): Priority {
   return 'medium';
 }
 
-function formatDueLabel(dueOn: string | null | undefined, status: AsanaTask['status']): string {
+function formatDueLabel(dueOn: string | null | undefined): string {
   if (!dueOn) return 'No due date';
   const today = todayMt();
   if (dueOn === today) return 'Today';
@@ -73,7 +73,7 @@ export function mapAsanaTaskToDashboard(task: AsanaApiTask): AsanaTask {
     title: task.name,
     project: sectionName(task),
     assignee,
-    dueDate: formatDueLabel(task.due_on, status),
+    dueDate: formatDueLabel(task.due_on),
     priority: parsePriority(task),
     status: task.completed ? 'upcoming' : status,
     flagged: false,

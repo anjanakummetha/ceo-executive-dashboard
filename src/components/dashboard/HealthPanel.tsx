@@ -111,7 +111,7 @@ function MetricInputCard({
             border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: 6,
             padding: '8px 10px',
-            color: '#bbb',
+            color: 'var(--text-secondary)',
             fontSize: 11,
             fontWeight: 600,
             cursor: disabled ? 'wait' : 'pointer',
@@ -353,7 +353,7 @@ export default function HealthPanel() {
 
         {log.workout ? (
           <div style={{ background: 'rgba(201,160,68,0.07)', border: '1px solid rgba(201,160,68,0.2)', borderRadius: 8, padding: '12px' }}>
-            <p style={{ color: '#e8d898', fontSize: 14, fontWeight: 600 }}>{log.workout.type}</p>
+            <p style={{ color: 'var(--gold-primary)', fontSize: 14, fontWeight: 600 }}>{log.workout.type}</p>
             <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>{log.workout.duration} min · {log.workout.intensity}</p>
             {log.workout.notes && <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 6, fontStyle: 'italic' }}>{log.workout.notes}</p>}
           </div>
@@ -394,7 +394,7 @@ export default function HealthPanel() {
       <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '10px 12px' }}>
         <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Today&apos;s factors</p>
         {readiness.factors.map((f) => (
-          <p key={f} style={{ color: '#bbb', fontSize: 11, marginBottom: 2 }}>· {f}</p>
+          <p key={f} style={{ color: 'var(--text-secondary)', fontSize: 11, marginBottom: 2 }}>· {f}</p>
         ))}
         <p style={{ color: 'var(--text-faint)', fontSize: 10, marginTop: 8 }}>AI performance insights coming later.</p>
       </div>

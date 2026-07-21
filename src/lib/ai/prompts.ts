@@ -22,7 +22,7 @@ Analyze today's snapshot and return ONLY valid JSON (no markdown):
     }
   ]
 }
-Rules: 5-8 items max, sorted by compositeScore desc. Use real names/events from data. Mountain Time. No HubSpot unless in data.
+Rules: 5-8 items max, sorted by compositeScore desc. Use real names/events from data. Mountain Time. Use only data present in DATA; do not invent CRM/deal items.
 
 DATA:
 ${JSON.stringify(snapshot, null, 0).slice(0, 28000)}`;
@@ -42,7 +42,7 @@ Return ONLY valid JSON:
     "bodyHtml": "simple HTML with <p> and <ul> only"
   }
 }
-Include: meeting count, top priorities, overdue tasks, urgent emails. Professional tone for Kory. Do not invent HubSpot deals.
+Include: meeting count, top priorities, overdue tasks, urgent emails. Professional tone for Kory. Use only data present below; do not invent deals or tasks.
 
 Overdue tasks: ${JSON.stringify(overdue)}
 
@@ -64,16 +64,24 @@ export function attendeeIntelPrompt(
   meetings: TodaySnapshot['meetings'],
 ): string {
   return `You are Hermes preparing Kory Mitchell (CEO, Iconic Founders) for today's meetings.
-Use ONLY facts in PROVIDED_EMAIL_CONTEXT and meeting data. Do not invent employers, deals, or news.
-If email context is empty, say what is unknown and set confidence to "low".
+You have web_search. For each attendee, RESEARCH their public professional background — current role,
+company, career history, education, board seats/affiliations, and any recent public news — using
+web_search (prioritize LinkedIn, the company's site, and reputable news). Use their name + company/email
+domain to disambiguate. Put verified public findings in "bio".
+Ground the RELATIONSHIP fields (introducedBy, relationshipContext, first contact) ONLY in
+PROVIDED_EMAIL_CONTEXT — never invent how they know Kory. If you cannot verify a public fact, omit it
+rather than guessing, and lower "confidence". If there is no email context AND no findable public info,
+set confidence to "low".
 
 Return ONLY valid JSON:
 {
   "people": [
     {
       "name": "Full Name",
-      "bio": "2-3 sentences grounded in email/meeting facts",
-      "relationshipContext": "1-2 sentences on email thread relationship with Kory",
+      "bio": "2-3 sentences: who they are and what they do, grounded in email/meeting facts",
+      "introducedBy": "Who connected them to Kory. Look for referral cues in the email thread — 'great connecting via X', 'X suggested I reach out', 'X made the intro', or an intro email where a third party is CC'd/mentioned. If it reads as cold/direct outreach, use 'Direct outreach'. If there is no signal, use 'Unknown'.",
+      "relationshipContext": "1-2 sentences on the prior relationship and email history with Kory, including first contact if visible",
+      "angle": "One sentence on the opportunity — why this meeting matters for Kory",
       "conversationTip": "one actionable line for today's meeting",
       "confidence": "high|medium|low"
     }

@@ -50,7 +50,7 @@ function DashboardBody() {
       <main className="max-w-[1600px] mx-auto px-4 py-6">
         <div className="slide-in">
           <div style={{ display: activeTab === 'today' ? 'block' : 'none' }}>
-            <TodayTab />
+            <TodayTab onNavigate={setTab} />
           </div>
           <div style={{ display: activeTab === 'meetings' ? 'block' : 'none' }}>
             <MeetingsTab />

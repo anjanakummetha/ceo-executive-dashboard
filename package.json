@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "probe:asana": "node scripts/probe-asana.mjs",
-    "probe:outlook": "node scripts/probe-outlook.mjs"
+    "probe:outlook": "node scripts/probe-outlook.mjs",
+    "probe:linkedin": "node scripts/probe-linkedin.mjs",
+    "test:readonly": "node --import tsx --test src/lib/composio/client.test.mjs",
+    "test:no-write-slugs": "node scripts/check-no-write-slugs.mjs"
   },
   "dependencies": {
     "jose": "^6.2.3",
@@ -28,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }

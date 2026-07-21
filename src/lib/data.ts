@@ -1,5 +1,5 @@
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
-export type TaskSource = 'asana' | 'hubspot' | 'email' | 'linkedin' | 'calendar' | 'personal';
+export type TaskSource = 'asana' | 'email' | 'linkedin' | 'calendar' | 'personal';
 export type EmailCategory = 'urgent' | 'board' | 'team' | 'personal' | 'finance' | 'pr' | 'legal' | 'sales';
 export type EmailTriage = 'urgent-reply' | 'revenue' | 'emotionally-sensitive' | 'delegate' | 'quick-reply' | 'deep-response' | 'ignore' | 'fyi';
 export type RelationshipHealth = 'strong' | 'good' | 'cooling' | 'cold';
@@ -98,21 +98,6 @@ export interface AsanaTask {
   flagged: boolean;
   subtasks?: number;
   completedSubtasks?: number;
-}
-
-// ─── HUBSPOT ───────────────────────────────────────────────────────────────
-
-export interface HubSpotTask {
-  id: string;
-  title: string;
-  contact: string;
-  company: string;
-  type: 'follow-up' | 'call' | 'email' | 'demo' | 'proposal';
-  dueDate: string;
-  priority: Priority;
-  dealValue?: string;
-  stage?: string;
-  flagged: boolean;
 }
 
 // ─── LINKEDIN ──────────────────────────────────────────────────────────────
@@ -315,8 +300,8 @@ export const aiPriorityItems: AIPriorityItem[] = [
   {
     id: 'ai2',
     title: 'Company A ($280K) — Contact 4 waiting 2 days, decision window closing',
-    source: 'hubspot',
-    sourceLabel: 'HubSpot — Proposal Stage',
+    source: 'email',
+    sourceLabel: 'Email — Proposal follow-up',
     why: 'Engagement dropped after last email. Deals at this stage stall after 72 hrs of silence. 9 AM call is your window.',
     action: 'Call Contact 4 at 9 AM. Lead with ROI data from similar clients. Ask directly for the decision.',
     timeEstimate: '20 min',
@@ -566,7 +551,7 @@ export const crackItems: CrackItem[] = [
     daysSince: 3,
     urgency: 'high',
     aiNote: 'CRM shows deal closed but no onboarding tasks created. Contact 9 has gone quiet. First impressions at onboarding set the tone for retention.',
-    source: 'HubSpot',
+    source: 'Email',
   },
   {
     id: 'cr3',
@@ -575,7 +560,7 @@ export const crackItems: CrackItem[] = [
     daysSince: 3,
     urgency: 'high',
     aiNote: 'A $2.4M potential deal. Contact 10 reached out proactively. Every day without a callback signals disinterest on your end.',
-    source: 'HubSpot + Missed call',
+    source: 'Missed call',
   },
   {
     id: 'cr4',
@@ -622,9 +607,9 @@ export const dailyBriefing: DailyBriefing = {
   ],
   overdueTasks: [
     { title: 'Series B pitch deck final review', source: 'asana', daysOverdue: 2, priority: 'critical' },
-    { title: 'Company E executive alignment call', source: 'hubspot', daysOverdue: 3, priority: 'medium' },
+    { title: 'Company E executive alignment call', source: 'email', daysOverdue: 3, priority: 'medium' },
     { title: 'Board meeting materials finalization', source: 'asana', daysOverdue: 1, priority: 'high' },
-    { title: 'Company D NDA follow-up', source: 'hubspot', daysOverdue: 1, priority: 'high' },
+    { title: 'Company D NDA follow-up', source: 'email', daysOverdue: 1, priority: 'high' },
   ],
 };
 
@@ -895,13 +880,6 @@ export const asanaTasks: AsanaTask[] = [
   { id: 'a4', title: 'Finalize board meeting materials', project: 'Board Operations', assignee: 'Kory', dueDate: 'Yesterday', priority: 'high', status: 'overdue', flagged: false, subtasks: 4, completedSubtasks: 2 },
   { id: 'a5', title: 'Approve Q2 marketing budget reallocation', project: 'Finance', assignee: 'Kory', dueDate: 'Tomorrow', priority: 'medium', status: 'upcoming', flagged: false, subtasks: 2, completedSubtasks: 0 },
   { id: 'a6', title: 'Review and finalize partnership agreement — Partner Co.', project: 'Business Development', assignee: 'Kory', dueDate: 'In 3 days', priority: 'medium', status: 'upcoming', flagged: false, subtasks: 3, completedSubtasks: 1 },
-];
-
-export const hubspotTasks: HubSpotTask[] = [
-  { id: 'h1', title: 'Send executive proposal to Company A', contact: 'Contact 4', company: 'Company A', type: 'proposal', dueDate: 'Today, 12:00 PM', priority: 'critical', dealValue: '$280,000', stage: 'Proposal Sent', flagged: true },
-  { id: 'h2', title: 'Schedule product demo — Company C', contact: 'Contact 8', company: 'Company C', type: 'demo', dueDate: 'Today', priority: 'high', dealValue: '$95,000', stage: 'Demo Scheduled', flagged: false },
-  { id: 'h3', title: 'Follow up: NDA signed — initiate onboarding', contact: 'Contact 9', company: 'Company D', type: 'follow-up', dueDate: 'Yesterday', priority: 'high', dealValue: '$150,000', stage: 'Closed Won', flagged: false },
-  { id: 'h4', title: 'Executive alignment call — Company E acquisition interest', contact: 'Contact 10', company: 'Company E', type: 'call', dueDate: '3 days ago', priority: 'medium', dealValue: '$2.4M', stage: 'Discovery', flagged: true },
 ];
 
 export const linkedInMessages: LinkedInMessage[] = [

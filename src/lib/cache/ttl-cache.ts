@@ -34,13 +34,18 @@ export function cacheInvalidate(prefix: string): void {
   }
 }
 
-/** Default TTLs (ms) */
+/** Default TTLs (ms). Raised to keep the shared Composio call budget (200k/mo,
+ * also used by the Lexi agent) comfortable — cost scales with cache windows
+ * during active use, not with page loads. */
 export const CACHE_TTL = {
-  meetings: 2 * 60_000,
-  tasks: 2 * 60_000,
-  inbox: 3 * 60_000,
-  linkedin: 3 * 60_000,
-  travel: 5 * 60_000,
-  badges: 2 * 60_000,
+  meetings: 5 * 60_000,
+  tasks: 10 * 60_000,
+  inbox: 5 * 60_000,
+  linkedin: 6 * 60 * 60_000, // static profile info — cache long
+  travel: 15 * 60_000,
+  badges: 5 * 60_000,
+  calendars: 24 * 60 * 60_000, // calendar list rarely changes
+  weekAhead: 30 * 60_000, // shared fetch for week-ahead / family / reservations
+  lexi: 60_000, // Lexi assistant panel (localhost + SQLite, cheap)
   aiDay: 12 * 60 * 60_000,
 } as const;

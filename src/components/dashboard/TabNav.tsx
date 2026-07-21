@@ -27,16 +27,18 @@ export default function TabNav({ activeTab, badges = {}, onTabChange }: TabNavPr
   return (
     <nav
       style={{
-        background: 'var(--bg-nav)',
-        borderBottom: '1px solid var(--gold-border)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.6), rgba(246,243,236,0.42))',
+        backdropFilter: 'blur(18px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+        borderBottom: '1px solid rgba(255,255,255,0.5)',
         position: 'sticky',
         top: 0,
         zIndex: 40,
-        boxShadow: 'var(--shadow-sm)',
+        boxShadow: '0 4px 18px rgba(44,40,36,0.06)',
       }}
     >
       <div className="max-w-[1600px] mx-auto px-4">
-        <div className="flex items-center" style={{ overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div className="flex items-center gap-1 py-2" style={{ overflowX: 'auto', scrollbarWidth: 'none' }}>
           {tabs.map(({ id, label, icon: Icon }) => {
             const active = activeTab === id;
             const badge = badges[id];
@@ -45,13 +47,18 @@ export default function TabNav({ activeTab, badges = {}, onTabChange }: TabNavPr
                 key={id}
                 type="button"
                 onClick={() => onTabChange(id)}
+                className="press sheen"
                 style={{
-                  padding: '13px 18px',
+                  padding: '9px 15px',
                   fontSize: '13px',
                   fontWeight: active ? 700 : 500,
                   color: active ? 'var(--gold-primary)' : 'var(--text-muted)',
-                  background: active ? 'var(--gold-muted)' : 'transparent',
-                  borderBottom: active ? '2px solid var(--gold-primary)' : '2px solid transparent',
+                  background: active
+                    ? 'linear-gradient(180deg, rgba(255,255,255,0.85), rgba(201,160,68,0.14))'
+                    : 'transparent',
+                  border: active ? '1px solid rgba(201,160,68,0.4)' : '1px solid transparent',
+                  borderRadius: 11,
+                  boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,0.8), 0 3px 10px rgba(138,109,38,0.12)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 7,
@@ -59,7 +66,7 @@ export default function TabNav({ activeTab, badges = {}, onTabChange }: TabNavPr
                   flexShrink: 0,
                   letterSpacing: '0.2px',
                   cursor: 'pointer',
-                  transition: 'color 0.15s, border-color 0.15s',
+                  transition: 'color 0.18s, background 0.18s, border-color 0.18s, box-shadow 0.18s',
                 }}
               >
                 <Icon size={14} />

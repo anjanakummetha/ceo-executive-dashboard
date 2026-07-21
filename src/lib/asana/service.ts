@@ -21,7 +21,7 @@ const TASK_OPT_FIELDS = [
 
 const PROJECT_OPT_FIELDS = ['name'];
 
-function useMockData(): boolean {
+function shouldUseMockData(): boolean {
   return process.env.USE_MOCK_DATA === 'true';
 }
 
@@ -70,7 +70,7 @@ export async function fetchAsanaProjectMeta(): Promise<AsanaProjectRef> {
 }
 
 export async function fetchAsanaTasksFromProject(): Promise<AsanaTask[]> {
-  if (useMockData()) {
+  if (shouldUseMockData()) {
     const { asanaTasks } = await import('@/lib/data');
     return asanaTasks;
   }

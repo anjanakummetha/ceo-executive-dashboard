@@ -7,7 +7,7 @@ import { shouldIncludeTravelFamilyEvent } from './map-event';
 import { mapOutlookEventToTravelSegment } from './map-travel';
 import type { OutlookCalendar } from './types';
 
-function useMockData(): boolean {
+function shouldUseMockData(): boolean {
   return process.env.USE_MOCK_DATA === 'true';
 }
 
@@ -32,7 +32,7 @@ export async function fetchTravelFamilyEvents(): Promise<TravelFamilySyncResult>
   const past = daysPast();
   const ahead = daysAhead();
 
-  if (useMockData()) {
+  if (shouldUseMockData()) {
     const { travelSegments } = await import('@/lib/data');
     return {
       segments: travelSegments,

@@ -38,9 +38,11 @@ export default function Header() {
   return (
     <header
       style={{
-        background: 'var(--bg-nav)',
-        borderBottom: '1px solid var(--gold-border)',
-        boxShadow: 'var(--shadow-sm)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.74), rgba(246,243,236,0.56))',
+        backdropFilter: 'blur(22px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(22px) saturate(160%)',
+        borderBottom: '1px solid rgba(255,255,255,0.55)',
+        boxShadow: '0 6px 24px rgba(44,40,36,0.10)',
       }}
       className="sticky top-0 z-50 px-6 py-3"
     >
@@ -51,7 +53,7 @@ export default function Header() {
             alt="Iconic Founders Group"
             width={44}
             height={44}
-            className="rounded-lg"
+            className="rounded-lg lift press"
             priority
           />
           <div>
@@ -67,11 +69,11 @@ export default function Header() {
               Iconic Founders Group
             </div>
             <div
+              className="float-title"
               style={{
                 color: 'var(--text-primary)',
-                fontSize: '14px',
-                fontWeight: 700,
-                letterSpacing: '0.2px',
+                fontSize: '15px',
+                fontWeight: 800,
                 lineHeight: 1.2,
               }}
             >

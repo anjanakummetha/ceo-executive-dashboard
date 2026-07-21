@@ -36,11 +36,6 @@ A full-featured executive command center built for Kory to manage daily activiti
 - Subtask progress bars
 - Filter by status, flag items
 
-### HubSpot Tasks
-- CRM tasks with deal value and pipeline stage
-- Active pipeline total at a glance
-- Overdue indicators, task type badges
-
 ### LinkedIn Messages
 - Unread message feed with sender roles and companies
 - Connection degree indicators

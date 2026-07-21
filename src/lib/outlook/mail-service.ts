@@ -15,7 +15,7 @@ const MESSAGE_SELECT = [
   'webLink',
 ];
 
-function useMockData(): boolean {
+function shouldUseMockData(): boolean {
   return process.env.USE_MOCK_DATA === 'true';
 }
 
@@ -44,7 +44,7 @@ export async function fetchInboxMessages(): Promise<{
   emails: Email[];
   syncedAt: string;
 }> {
-  if (useMockData()) {
+  if (shouldUseMockData()) {
     const { emails } = await import('@/lib/data');
     return { emails, syncedAt: new Date().toISOString() };
   }

@@ -7,6 +7,8 @@ import { type Meeting } from '@/lib/data';
 import { useSync } from '@/components/dashboard/SyncProvider';
 import { useAttendeeIntel } from '@/components/dashboard/AttendeeIntelProvider';
 import { isKoryAttendee } from '@/lib/outlook/meeting-people';
+import { meetingAnalytics, fmtHours } from '@/lib/analytics/derive';
+import { StatTile, PanelHeading } from '@/components/dashboard/ui/StatKit';
 import {
   buildMeetingRelationshipSummary,
   buildMeetingTalkingPoints,
@@ -136,7 +138,7 @@ function SectionLabel({ label, count, color }: { label: string; count: number; c
 }
 
 export default function MeetingsTab() {
-  const { meetings: syncMeetings, syncedAt, loading: syncLoading, error: syncError, refresh } = useSync();
+  const { meetings: syncMeetings, loading: syncLoading, error: syncError, refresh } = useSync();
   const { intelByKey, loading: intelLoading } = useAttendeeIntel();
   const [expandedId, setExpandedId] = useState<string>('');
   const [items, setItems] = useState<Meeting[]>([]);
@@ -189,8 +191,32 @@ export default function MeetingsTab() {
   const meetingItems = [...items.filter(isRealMeeting)].sort(sortByStart);
   const otherItems = [...items.filter((m) => !isRealMeeting(m))].sort(sortByStart);
 
+  const meetingStats = meetingAnalytics(syncMeetings);
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      {/* ── Meeting Analytics (full width) ── */}
+      <div className="xl:col-span-3">
+        <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.66), rgba(248,245,238,0.5))', backdropFilter: 'blur(20px) saturate(150%)', WebkitBackdropFilter: 'blur(20px) saturate(150%)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 18, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+          <PanelHeading icon={<Calendar size={16} />} title="Meeting Analytics" subtitle="Today's load & focus protection" />
+          <div style={{ padding: '16px 20px' }}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatTile icon={<Clock size={13} />} label="Day load" value={`${meetingStats.loadPct}%`} hint={`${fmtHours(meetingStats.totalMinutes)} in ${meetingStats.count} mtg${meetingStats.count === 1 ? '' : 's'}`} tone={meetingStats.loadPct >= 75 ? 'danger' : meetingStats.loadPct >= 50 ? 'warn' : 'neutral'} />
+              <StatTile icon={<Users size={13} />} label="External / internal" value={`${meetingStats.externalCount} / ${meetingStats.internalCount}`} hint="people outside IFG first" />
+              <StatTile icon={<Sparkles size={13} />} label="Focus block" value={meetingStats.largestGapMin > 0 ? fmtHours(meetingStats.largestGapMin) : 'None'} hint={meetingStats.largestGapLabel || 'fully booked'} tone={meetingStats.largestGapMin >= 90 ? 'good' : meetingStats.largestGapMin >= 60 ? 'neutral' : 'warn'} />
+              <StatTile icon={<Clock size={13} />} label="Back-to-back" value={String(meetingStats.backToBackCount)} hint={meetingStats.backToBackCount >= 3 ? 'add a reset' : 'manageable'} tone={meetingStats.backToBackCount >= 3 ? 'warn' : 'neutral'} />
+            </div>
+            <div className="flex items-start gap-2" style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${meetingStats.morningProtected ? 'var(--success)' : 'var(--warning)'}`, borderRadius: '0 10px 10px 0' }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.5 }}>
+                {meetingStats.count === 0
+                  ? 'No meetings today — a rare open calendar for deep work.'
+                  : `${meetingStats.prepReadyCount} of ${meetingStats.count} meeting${meetingStats.count === 1 ? '' : 's'} prepped · ${meetingStats.morningProtected ? 'morning block protected' : 'morning starts early today'}${meetingStats.largestGapMin >= 90 ? ` · biggest focus window ${meetingStats.largestGapLabel}` : ''}.`}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── Left: Meeting List ── */}
       <div className="xl:col-span-1">
         <div className="card">
@@ -230,7 +256,7 @@ export default function MeetingsTab() {
             </button>
           </div>
           {error && (
-            <p className="px-4 pb-2 flex items-center gap-1.5" style={{ color: '#e8a0a0', fontSize: 11 }}>
+            <p className="px-4 pb-2 flex items-center gap-1.5" style={{ color: 'var(--danger)', fontSize: 11 }}>
               <AlertCircle size={12} /> {error}
             </p>
           )}
@@ -486,7 +512,7 @@ export default function MeetingsTab() {
                           <span style={{ color: 'var(--gold-light)', fontSize: '11px', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
                             {String(i + 1).padStart(2, '0')}
                           </span>
-                          <p style={{ color: '#d4d0c8', fontSize: '13px', lineHeight: 1.5 }}>{point}</p>
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5 }}>{point}</p>
                         </div>
                       )) : (
                         <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No talking points yet — open after attendee intel loads or when emails exist for attendees.</p>
@@ -511,7 +537,7 @@ export default function MeetingsTab() {
                               Relationship Intelligence
                             </span>
                           </div>
-                          <p style={{ color: '#c8c0a8', fontSize: '13px', lineHeight: 1.6 }}>
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6 }}>
                             {relationshipSummary}
                           </p>
                         </div>
@@ -639,7 +665,7 @@ export default function MeetingsTab() {
                         Agenda
                       </span>
                     </div>
-                    <p style={{ color: '#c0c0c0', fontSize: '13px', lineHeight: 1.5 }}>{meeting.agenda}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5 }}>{meeting.agenda}</p>
                   </div>
                 )}
                 {meeting.notes && (
@@ -657,7 +683,7 @@ export default function MeetingsTab() {
                         Prep Notes
                       </span>
                     </div>
-                    <p style={{ color: '#d0c090', fontSize: '13px', lineHeight: 1.5 }}>{meeting.notes}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5 }}>{meeting.notes}</p>
                   </div>
                 )}
               </div>

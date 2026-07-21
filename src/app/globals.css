@@ -55,6 +55,37 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Spatial depth: soft warm light from the top corners, fixed behind content. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 560px at 12% -8%, rgba(201, 160, 68, 0.13), transparent 60%),
+    radial-gradient(900px 640px at 108% -4%, rgba(42, 100, 143, 0.07), transparent 55%),
+    var(--bg-page);
+}
+
+/* Faint IFG mountain, anchored to the viewport floor — the brand as terrain. */
+body::after {
+  content: '';
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(1700px, 132vw);
+  height: 46vh;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.055;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 200'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23c9a044'/><stop offset='1' stop-color='%238a6d26'/></linearGradient></defs><path d='M0 200 L82 92 L120 138 L200 36 L262 118 L308 82 L420 200 Z' fill='url(%23g)'/></svg>") no-repeat center bottom;
+  background-size: contain;
 }
 
 ::-webkit-scrollbar {
@@ -278,5 +309,139 @@ body {
 @media (min-width: 1024px) {
   .inbox-scroll-panel {
     max-height: min(520px, calc(100vh - 190px));
+  }
+}
+
+/* ═══ Liquid-glass design system ═══════════════════════════════════════ */
+
+/* Frosted panel that floats above the page and refracts the mountain behind. */
+.glass-panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(248, 245, 238, 0.5));
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 12px 34px rgba(44, 40, 36, 0.10),
+    0 3px 10px rgba(44, 40, 36, 0.05);
+  overflow: hidden;
+}
+/* Hairline gold rim along the top edge — the light catching glass. */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 160, 68, 0.55), transparent);
+  pointer-events: none;
+}
+
+/* Softer nested glass for tiles inside a panel. */
+.glass-tile {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(248, 245, 238, 0.32));
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Floating top chrome — sticky, blurred, hovering over content. */
+.floating-head {
+  position: sticky;
+  top: 12px;
+  z-index: 40;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 243, 236, 0.58));
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 10px 30px rgba(44, 40, 36, 0.12);
+}
+
+/* Major headers that read as floating above the surface. */
+.float-title {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 6px rgba(255, 255, 255, 0.5);
+  letter-spacing: -0.4px;
+}
+
+/* Motion primitives. */
+.lift {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(44, 40, 36, 0.16), 0 4px 12px rgba(44, 40, 36, 0.08);
+}
+.press:active {
+  transform: translateY(1px) scale(0.994);
+}
+
+/* Gaze/cursor-aware spotlight: a soft highlight that tracks the pointer.
+   Set --mx/--my (0–100%) on the element via JS; falls back to a top glow. */
+.spotlight {
+  position: relative;
+  isolation: isolate;
+}
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(201, 160, 68, 0.14),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.spotlight:hover::after {
+  opacity: 1;
+}
+
+/* Specular sheen sweep on hover. */
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.sheen:hover::after {
+  left: 130%;
+}
+
+/* Bento grid: mixed-size tiles on a tight rhythm. */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .bento {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lift, .press, .sheen::after, .spotlight::after {
+    transition: none;
   }
 }

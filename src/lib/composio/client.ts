@@ -6,6 +6,46 @@ const COMPOSIO_BASE = 'https://backend.composio.dev';
 
 export type ComposioToolkit = 'asana' | 'outlook' | 'linkedin';
 
+/**
+ * READ-ONLY GUARANTEE (structural, not policy).
+ *
+ * This dashboard must never mutate Outlook / Asana / LinkedIn. Every Composio
+ * call funnels through executeComposioTool, so we enforce read-only here at the
+ * single choke point — the same pattern as the Lexi agent's guard: an exact
+ * allowlist of the read slugs in use, plus a verb check as belt-and-suspenders.
+ * Anything else throws BEFORE any network request is made.
+ */
+export const READ_ONLY_TOOL_ALLOWLIST: ReadonlySet<string> = new Set([
+  'OUTLOOK_GET_CALENDAR_VIEW',
+  'OUTLOOK_LIST_CALENDARS',
+  'OUTLOOK_LIST_MESSAGES',
+  'OUTLOOK_SEARCH_MESSAGES',
+  'ASANA_GET_TASKS_FROM_A_PROJECT',
+  'ASANA_GET_A_PROJECT',
+  'ASANA_GET_WORKSPACE_PROJECTS',
+  'ASANA_GET_MULTIPLE_WORKSPACES',
+  'LINKEDIN_GET_MY_INFO',
+]);
+
+const READ_VERB_RE = /^(OUTLOOK|ASANA|LINKEDIN)_(GET|LIST|SEARCH|FIND|RETRIEVE)/;
+
+export class ReadOnlyViolationError extends Error {
+  constructor(toolSlug: string) {
+    super(
+      `Read-only violation: tool "${toolSlug}" is not on the dashboard's read allowlist. ` +
+        'This dashboard never writes to Outlook/Asana/LinkedIn.',
+    );
+    this.name = 'ReadOnlyViolationError';
+  }
+}
+
+export function assertReadOnlyTool(toolSlug: string): void {
+  const slug = toolSlug.trim().toUpperCase();
+  if (!READ_ONLY_TOOL_ALLOWLIST.has(slug) || !READ_VERB_RE.test(slug)) {
+    throw new ReadOnlyViolationError(toolSlug);
+  }
+}
+
 export function getComposioConfig(toolkit: ComposioToolkit = 'asana') {
   const apiKey = process.env.COMPOSIO_API_KEY;
   const userId = process.env.COMPOSIO_USER_ID;
@@ -37,6 +77,7 @@ export async function executeComposioTool<T = unknown>(
   args: Record<string, unknown>,
   toolkit: ComposioToolkit = 'asana',
 ): Promise<T> {
+  assertReadOnlyTool(toolSlug);
   const { apiKey, connectedAccountId, userId } = getComposioConfig(toolkit);
 
   const res = await fetch(

@@ -2,8 +2,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { HealthLog, WorkoutLog } from '@/lib/data';
 import { todayDateString } from '@/lib/time/format';
+import { dataDir } from '@/lib/paths';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_DIR = dataDir();
 const DATA_FILE = path.join(DATA_DIR, 'health-logs.json');
 
 const DEFAULT_GOALS = {

@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   MapPin,
   Clock,
-  Hash,
   RefreshCw,
   ExternalLink,
   Calendar,
@@ -213,7 +212,7 @@ export default function TravelTab() {
       )}
 
       {error && (
-        <p style={{ color: '#e8a0a0', fontSize: 11 }}>
+        <p style={{ color: 'var(--danger)', fontSize: 11 }}>
           {error} — showing fallback data.
         </p>
       )}
@@ -250,7 +249,7 @@ export default function TravelTab() {
                 return (
                   <div key={seg.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon size={12} style={{ color: tc.color }} />
-                    <span style={{ color: '#e0d0d0', fontSize: '12px' }}>{seg.title}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{seg.title}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
                       · {seg.date} at {seg.time}
                     </span>
@@ -385,7 +384,7 @@ export default function TravelTab() {
                     <div style={{ padding: '10px 14px' }} className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Clock size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                        <span style={{ color: '#c0c0c0', fontSize: '12px' }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
                           {seg.time}
                           {seg.endTime ? ` → ${seg.endTime}` : ''}
                         </span>
@@ -393,7 +392,7 @@ export default function TravelTab() {
                       {seg.location && (
                         <div className="flex items-center gap-2">
                           <MapPin size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                          <span style={{ color: '#c0c0c0', fontSize: '12px' }}>{seg.location}</span>
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{seg.location}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">

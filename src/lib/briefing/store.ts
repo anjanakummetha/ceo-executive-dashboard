@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import type { DailyBriefing, OverdueTask } from '@/lib/data';
+import { dataDir } from '@/lib/paths';
+import type { DailyBriefing } from '@/lib/data';
 import type { AIPriorityItem } from '@/lib/data';
 import { todayMtDateString } from '@/lib/outlook/time';
 
@@ -17,7 +18,7 @@ export interface DailyBriefingRecord extends DailyBriefing {
   source: 'hermes' | 'fallback';
 }
 
-const DATA_DIR = join(process.cwd(), 'data');
+const DATA_DIR = dataDir();
 const BRIEFING_PATH = join(DATA_DIR, 'daily-briefing.json');
 
 function ensureDir() {

@@ -78,6 +78,10 @@ export function AttendeeIntelProvider({ children }: { children: ReactNode }) {
         ? {
             ...p,
             bio: intel.bio,
+            introducedBy: intel.introducedBy,
+            relationshipContext: intel.relationshipContext,
+            angle: intel.angle,
+            conversationTip: intel.conversationTip,
             company: p.company || intel.emailContext?.companyGuess || p.company,
           }
         : p;
