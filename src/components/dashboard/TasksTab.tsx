@@ -56,6 +56,7 @@ export default function TasksTab() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount; loadTasks() is shared with the refresh button so its setLoading must stay (no cascading render)
     loadTasks();
   }, [loadTasks]);
 

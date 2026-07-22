@@ -105,6 +105,7 @@ export default function InboxTab() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount; loaders are shared with refresh buttons so their setLoading must stay (no cascading render)
     loadEmails();
     loadLinkedIn();
   }, [loadEmails, loadLinkedIn]);

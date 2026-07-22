@@ -145,6 +145,7 @@ export default function MeetingsTab() {
   const [aiSection, setAiSection] = useState<'points' | 'context' | 'emails' | 'bios'>('bios');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs items from sync context; items is locally mutated (flag toggle) so it cannot be derived during render
     setItems(syncMeetings);
     setExpandedId((prev) => {
       if (syncMeetings.some((m) => m.id === prev)) return prev;

@@ -34,6 +34,7 @@ function DashboardBody() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount badge poll; setState runs after await (no cascading render)
     loadBadges();
     const id = setInterval(loadBadges, 120_000);
     return () => clearInterval(id);

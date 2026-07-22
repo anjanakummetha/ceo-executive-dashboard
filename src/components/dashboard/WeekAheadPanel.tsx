@@ -28,6 +28,7 @@ export default function WeekAheadPanel() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(RES_STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only init reading localStorage, must run after mount (SSR-safe)
       if (raw) setDone(JSON.parse(raw));
     } catch { /* ignore */ }
     fetch('/api/planning')

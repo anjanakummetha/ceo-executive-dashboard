@@ -192,10 +192,12 @@ export default function HealthPanel() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount; setState runs after await (no cascading render)
     loadLog();
   }, [loadLog]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch history when range/log changes; setState runs after await (no cascading render)
     loadHistory(rangeDays);
   }, [loadHistory, rangeDays, log?.protein, log?.water, log?.workout]);
 

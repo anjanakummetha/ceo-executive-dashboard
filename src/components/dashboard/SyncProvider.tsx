@@ -47,6 +47,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount; refresh() is shared with the refresh button so its setLoading must stay, and setState runs after await (no cascading render)
     refresh(false);
   }, [refresh]);
 

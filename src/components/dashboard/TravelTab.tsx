@@ -87,6 +87,7 @@ export default function TravelTab() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount; load() is shared with the refresh button so its setLoading must stay (no cascading render)
     load();
   }, [load]);
 

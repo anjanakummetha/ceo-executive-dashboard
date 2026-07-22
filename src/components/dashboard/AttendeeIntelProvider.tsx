@@ -56,6 +56,7 @@ export function AttendeeIntelProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (syncLoading || fetched) return;
     if (meetings.filter((m) => (m.scheduleKind ?? 'meeting') === 'meeting').length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- run-once latch marking the empty-meetings case fetched; no external data to load
       setFetched(true);
       return;
     }

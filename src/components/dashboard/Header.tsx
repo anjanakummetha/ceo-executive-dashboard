@@ -17,6 +17,7 @@ export default function Header() {
       new Intl.DateTimeFormat('en-US', { timeZone: DEFAULT_TIMEZONE, timeZoneName: 'short' })
         .formatToParts(new Date())
         .find((p) => p.type === 'timeZoneName')?.value ?? 'MT';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only init, must run after mount (SSR-safe)
     setTzLabel(short);
 
     const update = () => {
