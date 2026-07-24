@@ -18,6 +18,12 @@ export interface OutlookEventRaw {
   webLink?: string;
   iCalUId?: string;
   categories?: string[];
+  /** Graph event instance type: singleInstance | occurrence | exception | seriesMaster */
+  type?: string;
+  /** Present on occurrences/exceptions of a recurring series. */
+  seriesMasterId?: string;
+  /** Present on the series master (recurring pattern). */
+  recurrence?: unknown;
   attendees?: Array<{
     emailAddress?: { name?: string; address?: string };
     type?: string;
@@ -50,6 +56,7 @@ export interface DashboardCalendarEvent {
   location: string;
   isAllDay: boolean;
   isOnline: boolean;
+  isRecurring: boolean;
   onlineMeetingUrl?: string;
   webLink?: string;
   bodyPreview?: string;

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TabNav, { TAB_IDS, type TabId } from '@/components/dashboard/TabNav';
-import { SyncProvider } from '@/components/dashboard/SyncProvider';
-import { AttendeeIntelProvider } from '@/components/dashboard/AttendeeIntelProvider';
+import { SyncProvider, useSync } from '@/components/dashboard/SyncProvider';
+import { AttendeeIntelProvider, useAttendeeIntel } from '@/components/dashboard/AttendeeIntelProvider';
+import { RefreshSignalProvider, useRefreshSignal } from '@/components/dashboard/RefreshSignalProvider';
 import TodayTab from '@/components/dashboard/TodayTab';
 import MeetingsTab from '@/components/dashboard/MeetingsTab';
 import InboxTab from '@/components/dashboard/InboxTab';
@@ -24,9 +25,13 @@ function DashboardBody() {
 
   const [badges, setBadges] = useState<Partial<Record<TabId, number>>>({});
 
-  const loadBadges = useCallback(async () => {
+  const { refresh } = useSync();
+  const { refreshIntel } = useAttendeeIntel();
+  const { bumpNonce } = useRefreshSignal();
+
+  const loadBadges = useCallback(async (force = false) => {
     try {
-      const res = await fetch('/api/badges');
+      const res = await fetch(force ? '/api/badges?refresh=1' : '/api/badges');
       if (res.ok) setBadges(await res.json());
     } catch {
       /* ignore */
@@ -39,6 +44,25 @@ function DashboardBody() {
     const id = setInterval(loadBadges, 120_000);
     return () => clearInterval(id);
   }, [loadBadges]);
+
+  /** One button, whole dashboard: force live data + regenerate every AI surface. */
+  const refreshAll = useCallback(async () => {
+    // Live data first so the AI regenerates off the fresh snapshot, then bump the
+    // nonce so Today/Inbox force their AI, and refresh attendee intel + badges.
+    await refresh(true);
+    bumpNonce();
+    await Promise.all([refreshIntel(), loadBadges(true)]);
+  }, [bumpNonce, refresh, refreshIntel, loadBadges]);
+
+  useEffect(() => {
+    const handler = () => {
+      void refreshAll().finally(() =>
+        window.dispatchEvent(new Event('dashboard:refresh-done')),
+      );
+    };
+    window.addEventListener('dashboard:refresh-request', handler);
+    return () => window.removeEventListener('dashboard:refresh-request', handler);
+  }, [refreshAll]);
 
   const setTab = (id: TabId) => {
     const href = id === 'today' ? '/' : `/?tab=${id}`;
@@ -81,7 +105,9 @@ export default function DashboardShell() {
   return (
     <SyncProvider>
       <AttendeeIntelProvider>
-        <DashboardBody />
+        <RefreshSignalProvider>
+          <DashboardBody />
+        </RefreshSignalProvider>
       </AttendeeIntelProvider>
     </SyncProvider>
   );

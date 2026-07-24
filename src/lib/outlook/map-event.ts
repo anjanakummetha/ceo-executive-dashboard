@@ -65,6 +65,12 @@ export function mapOutlookEvent(
   calendarName: string,
 ): DashboardCalendarEvent {
   const { start, end, isAllDay } = resolveStartEnd(raw);
+  const isRecurring =
+    raw.type === 'occurrence' ||
+    raw.type === 'exception' ||
+    raw.type === 'seriesMaster' ||
+    Boolean(raw.seriesMasterId) ||
+    Boolean(raw.recurrence);
   const location = raw.location?.displayName ?? '';
   const attendees =
     raw.attendees
@@ -92,6 +98,7 @@ export function mapOutlookEvent(
     location,
     isAllDay,
     isOnline: Boolean(raw.isOnlineMeeting || raw.onlineMeetingUrl),
+    isRecurring,
     onlineMeetingUrl: raw.onlineMeetingUrl,
     webLink: raw.webLink,
     bodyPreview: raw.bodyPreview,
@@ -186,6 +193,7 @@ export function toMeeting(ev: DashboardCalendarEvent): Meeting {
       ev.location,
     ),
     scheduleKind,
+    isRecurring: ev.isRecurring,
     startIso: ev.startIso,
     calendarName: ev.calendarName,
     flagged: false,

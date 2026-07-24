@@ -26,6 +26,11 @@ export interface AttendeeIntel {
   angle: string;
   conversationTip: string;
   confidence: IntelConfidence;
+  /** Every meeting this person is in today is a recurring series — skip deep research. */
+  recurring?: boolean;
+  /** True when the email history shows something awaiting Kory's reply/decision. */
+  actionNeeded?: boolean;
+  actionNote?: string;
 }
 
 export interface AttendeeIntelBundle {

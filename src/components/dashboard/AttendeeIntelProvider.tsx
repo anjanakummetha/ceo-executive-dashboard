@@ -84,6 +84,9 @@ export function AttendeeIntelProvider({ children }: { children: ReactNode }) {
             angle: intel.angle,
             conversationTip: intel.conversationTip,
             company: p.company || intel.emailContext?.companyGuess || p.company,
+            recurring: intel.recurring ?? p.recurring,
+            actionNeeded: intel.actionNeeded,
+            actionNote: intel.actionNote,
           }
         : p;
     });
