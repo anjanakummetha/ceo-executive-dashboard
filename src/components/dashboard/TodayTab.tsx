@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Mail, Zap, AlertTriangle, CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, Flame, UserPlus, Lightbulb } from 'lucide-react';
 import { aiPriorityItems, dailyBriefing, type AIPriorityItem, type AsanaTask, type DailyBriefing, type OverdueTask } from '@/lib/data';
 import { buildTodayPeopleFromMeetings } from '@/lib/outlook/meeting-people';
 import { useSync } from '@/components/dashboard/SyncProvider';
 import { useAttendeeIntel } from '@/components/dashboard/AttendeeIntelProvider';
+import { useRefreshSignal } from '@/components/dashboard/RefreshSignalProvider';
 import LexiPanel from '@/components/dashboard/LexiPanel';
 import WeekAheadPanel from '@/components/dashboard/WeekAheadPanel';
 import ExecutiveSnapshot from '@/components/dashboard/ExecutiveSnapshot';
@@ -179,6 +180,8 @@ function asanaToOverdue(task: AsanaTask): OverdueTask {
 export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => void }) {
  const { meetings: calendarMeetings, tasks, loading: syncLoading } = useSync();
  const { people: intelPeople, loading: intelLoading } = useAttendeeIntel();
+ const { nonce: refreshNonce } = useRefreshSignal();
+ const lastNonceRef = useRef(refreshNonce);
  const [briefTab, setBriefTab] = useState<BriefTab>('insights');
  const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
  const [briefingMeta, setBriefingMeta] = useState<{ emailDraft?: { to: string; subject: string }; emailSent: boolean } | null>(null);
@@ -192,10 +195,14 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
   let cancelled = false;
   (async () => {
    setAiLoading(true);
+   // A bump of the global refresh nonce forces briefing + priorities to
+   // regenerate rather than serving the once-per-day cache.
+   const force = refreshNonce !== lastNonceRef.current;
+   lastNonceRef.current = refreshNonce;
    try {
     const [briefRes, priRes] = await Promise.all([
-     fetch('/api/hermes/briefing'),
-     fetch('/api/hermes/priorities'),
+     fetch(force ? '/api/hermes/briefing?generate=1' : '/api/hermes/briefing'),
+     fetch(force ? '/api/hermes/priorities?refresh=1' : '/api/hermes/priorities'),
     ]);
     if (cancelled) return;
     if (briefRes.ok) {
@@ -219,7 +226,7 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
    }
   })();
   return () => { cancelled = true; };
- }, [calendarMeetings]);
+ }, [calendarMeetings, refreshNonce]);
 
  const activeBriefing = briefing ?? dailyBriefing;
 
@@ -247,7 +254,7 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
        </div>
        <div>
         <div style={{ color: 'var(--gold-light)', fontSize: '12px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>Daily Briefing</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: 1 }}>Hermes · {activeBriefing.generatedAt} · {activeBriefing.date}{briefingMeta?.emailDraft ? ` · Draft to ${briefingMeta.emailDraft.to}` : ''}</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: 1 }}>Hermes · {activeBriefing.generatedAt} · {activeBriefing.date}</div>
        </div>
       </div>
       <div style={{ background: briefingMeta?.emailSent ? 'rgba(76,175,130,0.1)' : 'rgba(201,160,68,0.1)', border: `1px solid ${briefingMeta?.emailSent ? 'rgba(76,175,130,0.3)' : 'rgba(201,160,68,0.3)'}`, borderRadius: 20, padding: '4px 12px', color: briefingMeta?.emailSent ? 'var(--success)' : 'var(--gold-light)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px' }}>
@@ -355,9 +362,25 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
             {person.company ? <p style={{ color: 'var(--text-faint)', fontSize: '10px' }} className="truncate">{person.company}</p> : null}
            </div>
           </div>
-          <div style={{ background: 'var(--gold-muted)', border: '1px solid var(--gold-border)', borderRadius: 6, padding: '6px 10px', marginTop: 10 }}>
-           <span style={{ color: 'var(--gold-primary)', fontSize: '11px', fontWeight: 600, lineHeight: 1.4 }}>{person.meetingTime} · {person.meetingTitle}</span>
+          <div className="flex items-center gap-2" style={{ marginTop: 10 }}>
+           <div style={{ flex: 1, background: 'var(--gold-muted)', border: '1px solid var(--gold-border)', borderRadius: 6, padding: '6px 10px', minWidth: 0 }}>
+            <span style={{ color: 'var(--gold-primary)', fontSize: '11px', fontWeight: 600, lineHeight: 1.4 }}>{person.meetingTime} · {person.meetingTitle}</span>
+           </div>
+           {person.recurring ? (
+            <span className="flex items-center gap-1" style={{ flexShrink: 0, background: 'rgba(74,158,214,0.1)', border: '1px solid rgba(74,158,214,0.28)', borderRadius: 6, padding: '3px 7px', color: 'var(--info)', fontSize: 9, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+             <Clock size={9} /> Recurring
+            </span>
+           ) : null}
           </div>
+          {person.actionNeeded && person.actionNote ? (
+           <div className="flex items-start gap-1.5" style={{ marginTop: 9, padding: '6px 10px', background: 'rgba(224,154,68,0.12)', border: '1px solid rgba(224,154,68,0.35)', borderRadius: 7 }}>
+            <AlertTriangle size={12} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} />
+            <div>
+             <span style={{ color: 'var(--warning)', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6, display: 'block' }}>Action needed</span>
+             <span style={{ color: 'var(--text-secondary)', fontSize: 11, lineHeight: 1.4 }}>{person.actionNote}</span>
+            </div>
+           </div>
+          ) : null}
           {person.introducedBy && !/^(unknown|direct outreach)$/i.test(person.introducedBy) ? (
            <div className="flex items-center gap-1.5" style={{ marginTop: 9, padding: '5px 9px', background: 'rgba(45,122,86,0.08)', border: '1px solid rgba(45,122,86,0.2)', borderRadius: 7 }}>
             <UserPlus size={11} style={{ color: 'var(--success)', flexShrink: 0 }} />

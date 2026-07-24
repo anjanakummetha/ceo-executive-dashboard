@@ -7,6 +7,11 @@ export type TodayPerson = Attendee & {
   relationshipContext?: string;
   angle?: string;
   conversationTip?: string;
+  /** True when every meeting this person appears in today is a recurring series. */
+  recurring?: boolean;
+  /** Set when the email history shows something awaiting Kory's reply/decision. */
+  actionNeeded?: boolean;
+  actionNote?: string;
 };
 
 const KORY_PATTERN = /kory\s*mitchell/i;
@@ -45,15 +50,22 @@ export function buildTodayPeopleFromMeetings(meetings: Meeting[]): TodayPerson[]
     .sort((a, b) => (a.startIso ?? a.time).localeCompare(b.startIso ?? b.time));
 
   for (const meeting of realMeetings) {
+    const recurring = meeting.isRecurring ?? false;
     for (const attendee of meeting.attendees) {
       if (isKoryAttendee(attendee.name)) continue;
       const key = attendee.name.trim().toLowerCase();
-      if (seen.has(key)) continue;
+      const existing = seen.get(key);
+      if (existing) {
+        // A person is only "recurring" if EVERY meeting they're in today recurs.
+        if (!recurring) existing.recurring = false;
+        continue;
+      }
       seen.set(key, {
         ...attendee,
         company: attendee.company || (attendee.email ? companyFromEmail(attendee.email) : ''),
         meetingTitle: meeting.title,
         meetingTime: meeting.time,
+        recurring,
       });
     }
   }

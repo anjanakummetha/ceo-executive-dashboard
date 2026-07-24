@@ -11,6 +11,21 @@ export default function Header() {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
   const [tzLabel, setTzLabel] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const done = () => setRefreshing(false);
+    window.addEventListener('dashboard:refresh-done', done);
+    return () => window.removeEventListener('dashboard:refresh-done', done);
+  }, []);
+
+  function refreshAll() {
+    if (refreshing) return;
+    setRefreshing(true);
+    window.dispatchEvent(new Event('dashboard:refresh-request'));
+    // Safety net in case a fetch hangs — never leave the spinner stuck.
+    window.setTimeout(() => setRefreshing(false), 60_000);
+  }
 
   useEffect(() => {
     const short =
@@ -119,12 +134,17 @@ export default function Header() {
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={refreshAll}
+              disabled={refreshing}
               className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-black/[0.04]"
-              style={{ border: '1px solid var(--gold-border)', background: 'var(--bg-card)' }}
-              title="Refresh page"
+              style={{ border: '1px solid var(--gold-border)', background: 'var(--bg-card)', cursor: refreshing ? 'progress' : 'pointer' }}
+              title={refreshing ? 'Refreshing all data…' : 'Refresh all data (live + AI)'}
             >
-              <RefreshCw size={13} style={{ color: 'var(--gold-primary)' }} />
+              <RefreshCw
+                size={13}
+                className={refreshing ? 'animate-spin' : ''}
+                style={{ color: 'var(--gold-primary)' }}
+              />
             </button>
             {process.env.NEXT_PUBLIC_REQUIRE_AUTH === 'true' && (
               <button

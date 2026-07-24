@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { todayMtDateString } from '@/lib/outlook/time';
 import { dataPath } from '@/lib/paths';
@@ -28,4 +28,14 @@ export function readAiCache<T>(kind: string, id: string): T | null {
 export function writeAiCache<T>(kind: string, id: string, data: T): void {
   ensureDir();
   writeFileSync(pathFor(kind, id), JSON.stringify(data, null, 2), 'utf8');
+}
+
+/** Drop today's cache file for one AI surface so the next call regenerates. */
+export function clearAiCache(kind: string, id: string): void {
+  const p = pathFor(kind, id);
+  try {
+    if (existsSync(p)) unlinkSync(p);
+  } catch {
+    /* ignore */
+  }
 }

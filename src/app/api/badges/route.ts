@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { cacheThrough, CACHE_TTL } from '@/lib/cache/ttl-cache';
+import { cacheThrough, cacheInvalidate, CACHE_TTL } from '@/lib/cache/ttl-cache';
 import { loadTodaySnapshot } from '@/lib/sync/today-snapshot';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    if (new URL(request.url).searchParams.get('refresh') === '1') {
+      cacheInvalidate('badges:');
+    }
     const badges = await cacheThrough('badges:counts', CACHE_TTL.badges, async () => {
       const s = await loadTodaySnapshot();
       return {

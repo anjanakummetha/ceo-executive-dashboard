@@ -56,40 +56,74 @@ export function attendeeIntelPrompt(
     email?: string;
     meetingTitle: string;
     meetingTime: string;
-    emailContext: {
-      companyGuess: string;
-      snippets: Array<{ subject: string; preview: string; direction: string }>;
-    } | null;
+    recurring: boolean;
+    companyGuess: string;
+    firstContact:
+      | { date: string; from: string; to: string[]; cc: string[]; subject: string; preview: string }
+      | null;
+    snippets: Array<{
+      subject: string;
+      preview: string;
+      direction: string;
+      date?: string;
+      from?: string;
+      to?: string[];
+      cc?: string[];
+    }>;
   }>,
   meetings: TodaySnapshot['meetings'],
 ): string {
   return `You are Hermes preparing Kory Mitchell (CEO, Iconic Founders) for today's meetings.
-You have web_search. For each attendee, RESEARCH their public professional background — current role,
-company, career history, education, board seats/affiliations, and any recent public news — using
-web_search (prioritize LinkedIn, the company's site, and reputable news). Use their name + company/email
-domain to disambiguate. Put verified public findings in "bio".
-Ground the RELATIONSHIP fields (introducedBy, relationshipContext, first contact) ONLY in
-PROVIDED_EMAIL_CONTEXT — never invent how they know Kory. If you cannot verify a public fact, omit it
-rather than guessing, and lower "confidence". If there is no email context AND no findable public info,
-set confidence to "low".
+
+Each person has PROVIDED_EMAIL_CONTEXT drawn from Kory's real Outlook mailbox (inbox + sent):
+"firstContact" is the EARLIEST message between them and Kory; "snippets" is the chronological trail
+(earliest first). Each message lists "from", "to", "cc" and a "direction" (from_them = they emailed
+Kory, to_them = Kory emailed them, other = a third party). This is your ONLY source for how they know
+Kory — never invent it.
+
+For NON-recurring attendees:
+- RESEARCH their public professional background with web_search (current role, company, career history,
+  education, board seats, recent public news). Prioritize LinkedIn, the company site, reputable news.
+  Use name + company/email domain to disambiguate. Put verified public findings in "bio".
+- DETERMINE "introducedBy" from firstContact and the earliest snippets: if a third party sent or was
+  CC'd on the first email, or is named in it ("X suggested I reach out", "great connecting via X",
+  "X made the intro", "looping in X"), name that person. If Kory (direction to_them) or the attendee
+  (direction from_them) started the thread directly with no third party, use "Direct outreach". Only use
+  "Unknown" when there is genuinely no email history at all.
+- "relationshipContext": 1-2 sentences on the prior relationship and email history, including the first
+  contact date and what it was about.
+
+For RECURRING attendees (recurring=true): SKIP web research. Set "bio" to "". Set "relationshipContext"
+to a short note like "Recurring meeting." Set "introducedBy" to "Unknown" unless the intro is clearly in
+the email history. Do not spend effort here beyond the action check below.
+
+For ALL attendees, set "actionNeeded" and "actionNote": actionNeeded=true ONLY if the email history shows
+something concretely awaiting Kory's reply or decision (an open question, a request, a document/approval
+pending, an unanswered ask). "actionNote" is one short line describing it. Otherwise actionNeeded=false
+and actionNote="".
+
+If you cannot verify a public fact, omit it and lower "confidence". No email context AND no findable
+public info => confidence "low".
 
 Return ONLY valid JSON:
 {
   "people": [
     {
       "name": "Full Name",
-      "bio": "2-3 sentences: who they are and what they do, grounded in email/meeting facts",
-      "introducedBy": "Who connected them to Kory. Look for referral cues in the email thread — 'great connecting via X', 'X suggested I reach out', 'X made the intro', or an intro email where a third party is CC'd/mentioned. If it reads as cold/direct outreach, use 'Direct outreach'. If there is no signal, use 'Unknown'.",
-      "relationshipContext": "1-2 sentences on the prior relationship and email history with Kory, including first contact if visible",
-      "angle": "One sentence on the opportunity — why this meeting matters for Kory",
+      "bio": "2-3 sentences (empty string for recurring attendees)",
+      "introducedBy": "Person who connected them to Kory, or 'Direct outreach', or 'Unknown'",
+      "relationshipContext": "1-2 sentences grounded in the email history, including first contact",
+      "angle": "One sentence on why this meeting matters for Kory (empty for recurring)",
       "conversationTip": "one actionable line for today's meeting",
+      "actionNeeded": true,
+      "actionNote": "one line, or empty string",
       "confidence": "high|medium|low"
     }
   ]
 }
 
 PEOPLE_WITH_EMAIL_CONTEXT:
-${JSON.stringify(people, null, 0).slice(0, 22000)}
+${JSON.stringify(people, null, 0).slice(0, 30000)}
 
 MEETINGS:
 ${JSON.stringify(meetings.filter((m) => (m.scheduleKind ?? 'meeting') === 'meeting'), null, 0).slice(0, 8000)}`;

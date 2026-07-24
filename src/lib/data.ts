@@ -58,6 +58,8 @@ export interface Meeting {
   location: string;
   type: 'video' | 'in-person' | 'phone';
   scheduleKind?: ScheduleKind;
+  /** True for occurrences/exceptions/masters of a recurring Outlook series. */
+  isRecurring?: boolean;
   startIso?: string;
   calendarName?: string;
   notes?: string;

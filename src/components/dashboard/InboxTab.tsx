@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ElementType } from 'react';
 import { Mail, Flag, ExternalLink, Sparkles, AlertCircle, Users, DollarSign, Heart, Megaphone, Scale, TrendingUp, ArrowRight, Copy, CheckCircle2, UserMinus, RefreshCw } from 'lucide-react';
 import { emails, linkedInMessages, type Email, type EmailCategory, type EmailTriage } from '@/lib/data';
 import { useSync } from '@/components/dashboard/SyncProvider';
+import { useRefreshSignal } from '@/components/dashboard/RefreshSignalProvider';
 import { inboxAnalytics } from '@/lib/analytics/derive';
 import { StatTile, MiniBars, PanelHeading } from '@/components/dashboard/ui/StatKit';
 
@@ -41,6 +42,9 @@ type FilterType = 'all' | 'unread' | 'flagged' | EmailCategory;
 
 export default function InboxTab() {
   const { emails: syncEmails, syncedAt: syncSyncedAt, loading: syncLoading, error: syncError, refresh } = useSync();
+  const { nonce: refreshNonce } = useRefreshSignal();
+  const forceAiRef = useRef(false);
+  const lastNonceRef = useRef(refreshNonce);
   const [emailItems, setEmailItems] = useState<Email[]>([]);
   const [emailLoading, setEmailLoading] = useState(true);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -70,7 +74,9 @@ export default function InboxTab() {
         return list[0]?.id ?? null;
       });
       setAiAnalyzing(true);
-      const aiRes = await fetch('/api/hermes/inbox-analysis');
+      const force = forceAiRef.current;
+      forceAiRef.current = false;
+      const aiRes = await fetch(force ? '/api/hermes/inbox-analysis?refresh=1' : '/api/hermes/inbox-analysis');
       if (aiRes.ok) {
         const j = await aiRes.json();
         const analyzed = (j.emails ?? []) as Email[];
@@ -109,6 +115,15 @@ export default function InboxTab() {
     loadEmails();
     loadLinkedIn();
   }, [loadEmails, loadLinkedIn]);
+
+  // Global refresh: force the inbox AI triage + LinkedIn to reload from live data.
+  useEffect(() => {
+    if (refreshNonce === lastNonceRef.current) return;
+    lastNonceRef.current = refreshNonce;
+    forceAiRef.current = true;
+    loadEmails();
+    loadLinkedIn();
+  }, [refreshNonce, loadEmails, loadLinkedIn]);
 
   const toggleEmailFlag = (id: string) => {
     if (isLiveInbox) return;
