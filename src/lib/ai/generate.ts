@@ -58,6 +58,38 @@ export async function generatePriorities(snapshot?: TodaySnapshot): Promise<AIPr
   return items;
 }
 
+type Section = { heading: string; points: string[] };
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Plain-text briefing built from the same sections the dashboard shows. */
+function briefToProse(sections: Section[], insights: string[]): string {
+  const parts = sections.map(
+    (s) => `${s.heading}\n${s.points.map((p) => `- ${p}`).join('\n')}`,
+  );
+  if (insights.length) {
+    parts.push(`Key insights\n${insights.map((i) => `- ${i}`).join('\n')}`);
+  }
+  return parts.join('\n\n');
+}
+
+/** HTML email body, same content. */
+function briefToHtml(sections: Section[], insights: string[]): string {
+  const block = (heading: string, points: string[]) =>
+    `<h3>${escapeHtml(heading)}</h3><ul>${points
+      .map((p) => `<li>${escapeHtml(p)}</li>`)
+      .join('')}</ul>`;
+  const parts = sections.map((s) => block(s.heading, s.points));
+  if (insights.length) parts.push(block('Key insights', insights));
+  return parts.join('');
+}
+
 export async function generateDailyBriefing(
   snapshot?: TodaySnapshot,
 ): Promise<DailyBriefingRecord> {
@@ -67,26 +99,41 @@ export async function generateDailyBriefing(
   const parsed = extractJson<{
     keyInsights: string[];
     conversationalBrief: string;
+    briefSections?: Array<{ heading?: string; points?: string[] }>;
     weatherCondition?: string;
     temperature?: string;
     emailDraft: { subject: string; bodyText: string; bodyHtml: string };
   }>(raw);
 
+  // Drop any section the model emitted with nothing in it — an empty heading
+  // reads as a bug, and the prompt already asks for omission over padding.
+  const briefSections = (parsed.briefSections ?? [])
+    .map((s) => ({
+      heading: String(s.heading ?? '').trim(),
+      points: (s.points ?? []).map((p) => String(p).trim()).filter(Boolean),
+    }))
+    .filter((s) => s.heading && s.points.length > 0);
+
   const now = new Date();
+  const keyInsights = parsed.keyInsights ?? [];
+  // Assemble the prose and the email from the same sections the dashboard
+  // renders, so the three versions cannot drift apart — and so the model writes
+  // the briefing once instead of four times.
   const record: DailyBriefingRecord = {
     date: todayMtDateString(),
     generatedAt: formatBriefingDeliveryLabel(now.toISOString()),
     generatedAtIso: now.toISOString(),
     overdueTasks: overdue,
-    keyInsights: parsed.keyInsights ?? [],
+    keyInsights,
+    briefSections,
     weatherCondition: parsed.weatherCondition ?? '—',
     temperature: parsed.temperature ?? '—',
-    conversationalBrief: parsed.conversationalBrief ?? '',
+    conversationalBrief: briefToProse(briefSections, keyInsights),
     emailDraft: {
       to: defaultEmailRecipient(),
       subject: parsed.emailDraft?.subject ?? `CEO Daily Briefing — ${data.date}`,
-      bodyText: parsed.emailDraft?.bodyText ?? parsed.conversationalBrief ?? '',
-      bodyHtml: parsed.emailDraft?.bodyHtml ?? `<p>${parsed.conversationalBrief ?? ''}</p>`,
+      bodyText: briefToProse(briefSections, keyInsights),
+      bodyHtml: briefToHtml(briefSections, keyInsights),
     },
     source: 'hermes',
   };

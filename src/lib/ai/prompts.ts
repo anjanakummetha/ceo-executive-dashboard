@@ -29,20 +29,72 @@ ${JSON.stringify(snapshot, null, 0).slice(0, 28000)}`;
 }
 
 export function dailyBriefingPrompt(snapshot: TodaySnapshot, overdue: { title: string; source: string; daysOverdue: number; priority: string }[]): string {
-  return `You are Hermes generating Kory Mitchell's CEO morning briefing for Iconic Founders Group.
-Return ONLY valid JSON:
+  return `You are Hermes writing Kory Mitchell's morning briefing. He is CEO of Iconic
+Founders Group and reads this once, quickly, before the day starts. Mountain Time.
+
+Return ONLY valid JSON. The email and the prose summary are assembled from these
+fields in code, so write each thing once:
 {
-  "keyInsights": ["3-6 bullet strings"],
-  "conversationalBrief": "2-4 paragraphs, direct, actionable, Mountain Time",
+  "briefSections": [ { "heading": "...", "points": ["...", "..."] } ],
+  "keyInsights": ["..."],
   "weatherCondition": "Unknown or brief note",
-  "temperature": "",
-  "emailDraft": {
-    "subject": "CEO Daily Briefing — {date}",
-    "bodyText": "plain text email version",
-    "bodyHtml": "simple HTML with <p> and <ul> only"
-  }
+  "temperature": ""
 }
-Include: meeting count, top priorities, overdue tasks, urgent emails. Professional tone for Kory. Use only data present below; do not invent deals or tasks.
+
+=== briefSections — the morning summary ===
+Two to four sections. Use ONLY these headings, in this order, and OMIT any with
+nothing real to say. An empty section is worse than a missing one.
+
+  "Needs you today"  — decisions, replies and commitments only Kory can make.
+  "Schedule"         — the shape of the day: how many meetings, the notable ones,
+                       any back-to-back crunch or unusual gap. Not a list of every meeting.
+  "Deals & pipeline" — movement, stalls, anything with money attached.
+  "Loose ends"       — overdue tasks, unanswered threads, things he said he'd do.
+
+At most FOUR points per section — if there are more, keep the four that matter and
+roll the rest into one counted line ("4 other call-list items still open").
+Never mention the same item in two different sections.
+
+Each point is ONE line, a bare fact with the specifics in it. Lead with the thing
+that matters, not the framing.
+  GOOD: "Endurance Plumbing has sat in Actionable for 3 weeks — no reply since Jul 8."
+  BAD:  "You may want to consider following up on some of your outstanding deals."
+Name names, quote figures, give day counts. Never write "several" or "a few" when
+you can count them.
+
+=== keyInsights — the 3 to 5 things that would change his day ===
+Write briefSections FIRST, then read them back. An insight must add something those
+sections do NOT already say — a connection between items, a pattern across them, a
+consequence. If an insight would just restate a point above, drop it. If it is more
+valuable than the section point, cut the section point and keep the insight. The same
+fact must never appear in both.
+
+This is the hardest section. A slot is earned ONLY by something that is BOTH
+non-obvious AND consequential today. Rank by consequence and cut the rest.
+
+Earns a slot:
+  - Money at stake or moving: a deal stalled, a number that changed, a payment due.
+  - A hard deadline landing today or tomorrow.
+  - Someone blocked waiting on Kory — name them and what they are waiting for.
+  - A commitment Kory made in an email and has not delivered ("I'll send you the deck").
+  - A meeting today with someone he has never met, or has not spoken to in months.
+  - A pattern he would not spot from one screen: same client raised twice this week,
+    three tasks slipping in the same project.
+
+Never earns a slot:
+  - Restating counts already visible elsewhere ("You have 6 meetings today").
+  - Anything already said in briefSections — insights are what the sections do not cover.
+  - Generic advice ("prioritise your day", "stay on top of email").
+  - Praise, encouragement, or filler.
+
+Sweep for these before deciding — missing a real one is the worse failure:
+  every overdue task, every unanswered thread where the other person asked something,
+  every meeting with an external attendee, and anything time-boxed.
+
+Fewer, sharper insights beat a padded list. Three excellent ones is a good outcome;
+if only two clear the bar, return two.
+
+Use only the data below. Never invent a deal, task, name, figure or date.
 
 Overdue tasks: ${JSON.stringify(overdue)}
 
@@ -119,16 +171,47 @@ and actionNote="".
 If you cannot verify a public fact, omit it and lower "confidence". No email context AND no findable
 public info => confidence "low".
 
+=== What each field has to earn ===
+
+"bio" — who they are and what they actually do. Concrete: role, company, what that
+company does, career history, education, board seats. Three sentences at most.
+  GOOD: "Partner at Agility Equity Partners, a Pittsburgh PE firm doing sponsor-led
+        equity for the lower middle market. Co-founded Incline Equity; before that MD
+        at PNC Equity Management. Columbia and Carnegie Mellon."
+  BAD:  "An experienced professional with a strong background in finance."
+If you only verified a role and a company, write only that. Never pad to length.
+
+"relationshipContext" — how they know Kory, from the email record alone. Include when
+first contact was and what it was about. If the only messages are calendar invites or
+automated notifications, that is NOT a relationship: say "First meeting — no prior
+correspondence."
+
+"angle" — why THIS meeting matters now. Must add something the meeting title does not
+already say.
+  GOOD: "He's raised a fund since you last spoke — the lending relationship he pitched
+        in June may now be a co-investment conversation."
+  BAD:  "This is an opportunity to build the relationship." (true of every meeting)
+If nothing beyond the obvious is knowable, return "".
+
+"conversationTip" — one specific thing to say, ask, or bring. Not a demeanour note.
+  GOOD: "Ask what changed on the Endurance timeline — he went quiet after Jul 8."
+  BAD:  "Be prepared and listen actively."
+Return "" rather than filler.
+
+Empty strings are correct and expected. A card with two real fields is better than one
+with five padded ones, and Kory will stop trusting all of it the moment he catches one
+invented detail.
+
 Return ONLY valid JSON:
 {
   "people": [
     {
       "name": "Full Name",
-      "bio": "2-3 sentences (empty string for recurring attendees)",
+      "bio": "2-3 sentences (empty string for recurring/internal attendees)",
       "introducedBy": "Person who connected them to Kory, or 'Direct outreach', or 'Unknown'",
       "relationshipContext": "1-2 sentences grounded in the email history, including first contact",
-      "angle": "One sentence on why this meeting matters for Kory (empty for recurring)",
-      "conversationTip": "one actionable line for today's meeting",
+      "angle": "One sentence on why this meeting matters for Kory (empty when nothing to add)",
+      "conversationTip": "one specific thing to say/ask/bring, or empty string",
       "actionNeeded": true,
       "actionNote": "one line, or empty string",
       "confidence": "high|medium|low"

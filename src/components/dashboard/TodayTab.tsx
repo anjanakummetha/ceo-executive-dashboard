@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Mail, Zap, AlertTriangle, CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, Flame, UserPlus, Lightbulb } from 'lucide-react';
-import { aiPriorityItems, dailyBriefing, type AIPriorityItem, type AsanaTask, type DailyBriefing, type OverdueTask } from '@/lib/data';
-import { buildTodayPeopleFromMeetings } from '@/lib/outlook/meeting-people';
+import { aiPriorityItems, dailyBriefing, type AIPriorityItem, type AsanaTask, type DailyBriefing, type OverdueTask, type BriefSection } from '@/lib/data';
+import { buildTodayPeopleFromMeetings, isInternalAttendee } from '@/lib/outlook/meeting-people';
 import { useSync } from '@/components/dashboard/SyncProvider';
 import { useAttendeeIntel } from '@/components/dashboard/AttendeeIntelProvider';
 import { useRefreshSignal } from '@/components/dashboard/RefreshSignalProvider';
@@ -136,7 +136,55 @@ function splitBriefLead(text: string): { lead: string; bullets: string[] } {
   return { lead: sentences.slice(0, leadCount).join(' '), bullets: sentences.slice(leadCount) };
 }
 
-/** Renders a briefing as a lead paragraph plus scannable, emphasized bullets. */
+/** The morning summary, grouped under its own headings.
+ *
+ * Preferred over BriefBody: splitting prose by sentence count could only ever
+ * produce a lead plus a flat list, never the sections Kory reads by. */
+function BriefSections({ sections }: { sections: BriefSection[] }) {
+  return (
+    <div className="space-y-3.5">
+      {sections.map((section) => (
+        <div key={section.heading}>
+          <p
+            style={{
+              color: 'var(--gold-primary)',
+              fontSize: 10,
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px',
+              marginBottom: 6,
+            }}
+          >
+            {section.heading}
+          </p>
+          <ul className="space-y-1.5" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {section.points.map((point, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: '50%',
+                    background: 'var(--gold-primary)',
+                    flexShrink: 0,
+                    marginTop: 7,
+                    opacity: 0.75,
+                  }}
+                />
+                <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.6 }}>
+                  {emphasize(point)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Renders a briefing as a lead paragraph plus scannable, emphasized bullets.
+ *  Fallback for briefings generated before briefSections existed. */
 function BriefBody({ text }: { text: string }) {
   const { lead, bullets } = splitBriefLead(text);
   if (!lead && bullets.length === 0) return null;
@@ -233,8 +281,16 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
  const overdueTasks =
   asanaOverdue.length > 0 ? asanaOverdue : activeBriefing.overdueTasks;
 
- const displayPeople =
+ const rawPeople =
   intelPeople.length > 0 ? intelPeople : buildTodayPeopleFromMeetings(calendarMeetings);
+ // People Kory has to prepare for come first: outside guests before colleagues,
+ // one-off meetings before standing ones. Colleagues carry no bio by design, so
+ // leaving them interleaved buried the cards that actually matter.
+ const displayPeople = [...rawPeople].sort((a, b) => {
+  const rank = (p: typeof a) =>
+   (isInternalAttendee({ name: p.name, email: p.email }) ? 2 : 0) + (p.recurring ? 1 : 0);
+  return rank(a) - rank(b);
+ });
  const peopleAiBusy = intelLoading && displayPeople.every((p) => !p.bio);
  const todayMeetingCount = calendarMeetings.filter(
   (m) => (m.scheduleKind ?? 'meeting') === 'meeting',
@@ -287,7 +343,12 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
     <div style={{ padding: '18px 20px' }}>
      {briefTab === 'insights' && (
       <div className="slide-in space-y-4">
-       {activeBriefing.conversationalBrief ? (
+       {activeBriefing.briefSections?.length ? (
+        <div style={{ background: 'rgba(201,160,68,0.06)', border: '1px solid rgba(201,160,68,0.18)', borderLeft: '3px solid var(--gold-primary)', borderRadius: '0 10px 10px 0', padding: '14px 16px' }}>
+         <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 12 }}>Morning Summary</p>
+         <BriefSections sections={activeBriefing.briefSections} />
+        </div>
+       ) : activeBriefing.conversationalBrief ? (
         <div style={{ background: 'rgba(201,160,68,0.06)', border: '1px solid rgba(201,160,68,0.18)', borderLeft: '3px solid var(--gold-primary)', borderRadius: '0 10px 10px 0', padding: '14px 16px' }}>
          <p style={{ color: 'var(--gold-primary)', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>Morning Summary</p>
          <BriefBody text={activeBriefing.conversationalBrief} />
@@ -366,7 +427,11 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
            <div style={{ flex: 1, background: 'var(--gold-muted)', border: '1px solid var(--gold-border)', borderRadius: 6, padding: '6px 10px', minWidth: 0 }}>
             <span style={{ color: 'var(--gold-primary)', fontSize: '11px', fontWeight: 600, lineHeight: 1.4 }}>{person.meetingTime} · {person.meetingTitle}</span>
            </div>
-           {person.recurring ? (
+           {isInternalAttendee({ name: person.name, email: person.email }) ? (
+            <span className="flex items-center gap-1" style={{ flexShrink: 0, background: 'rgba(120,120,120,0.1)', border: '1px solid rgba(120,120,120,0.25)', borderRadius: 6, padding: '3px 7px', color: 'var(--text-muted)', fontSize: 9, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+             IFG
+            </span>
+           ) : person.recurring ? (
             <span className="flex items-center gap-1" style={{ flexShrink: 0, background: 'rgba(74,158,214,0.1)', border: '1px solid rgba(74,158,214,0.28)', borderRadius: 6, padding: '3px 7px', color: 'var(--info)', fontSize: 9, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
              <Clock size={9} /> Recurring
             </span>
@@ -386,12 +451,12 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
             <UserPlus size={11} style={{ color: 'var(--success)', flexShrink: 0 }} />
             <span style={{ color: 'var(--text-secondary)', fontSize: 10.5, lineHeight: 1.3 }}>Introduced by <strong style={{ color: 'var(--text-primary)' }}>{person.introducedBy}</strong></span>
            </div>
-          ) : person.introducedBy ? (
+          ) : /^direct outreach$/i.test(person.introducedBy ?? '') ? (
            <div className="flex items-center gap-1.5" style={{ marginTop: 9 }}>
             <UserPlus size={10} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-            <span style={{ color: 'var(--text-faint)', fontSize: 10 }}>{person.introducedBy}</span>
+            <span style={{ color: 'var(--text-faint)', fontSize: 10 }}>Direct outreach</span>
            </div>
-          ) : null}
+          ) : null /* "Unknown" tells Kory nothing — show no line at all. */}
           {person.bio ? (
            <p style={{ color: 'var(--text-secondary)', fontSize: '11.5px', lineHeight: 1.5, marginTop: 9 }}>{person.bio}</p>
           ) : null}

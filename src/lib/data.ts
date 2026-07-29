@@ -254,6 +254,13 @@ export interface AnxietyReducer {
 
 // ─── AI MORNING BRIEF ──────────────────────────────────────────────────────
 
+export interface BriefSection {
+  /** Short heading, e.g. "Needs you today" or "Deals". */
+  heading: string;
+  /** One line per item. Bare facts, no preamble. */
+  points: string[];
+}
+
 export interface DailyBriefing {
   date: string;
   generatedAt: string;
@@ -262,6 +269,8 @@ export interface DailyBriefing {
   weatherCondition: string;
   temperature: string;
   conversationalBrief: string;
+  /** Structured morning summary — rendered with headers. */
+  briefSections?: BriefSection[];
 }
 
 export interface OverdueTask {
