@@ -24,7 +24,7 @@ import {
 } from '@/lib/briefing/store';
 import { extractJson } from '@/lib/hermes/parse-json';
 import { runHermesCompletion, runHermesResearch } from '@/lib/hermes/cli';
-import { buildTodayPeopleFromMeetings } from '@/lib/outlook/meeting-people';
+import { buildTodayPeopleFromMeetings, isInternalAttendee } from '@/lib/outlook/meeting-people';
 import { todayMtDateString } from '@/lib/outlook/time';
 import { loadTodaySnapshot, type TodaySnapshot } from '@/lib/sync/today-snapshot';
 
@@ -174,6 +174,9 @@ export async function generateAttendeeIntel(snapshot?: TodaySnapshot): Promise<A
     const key = intelKey(p.name, p.email);
     const ctx = emailContexts.get(key) ?? null;
     const history = histories.get(key) ?? null;
+    // Colleagues are listed but never researched — Kory knows them, and the
+    // search spend was landing on his own team.
+    const internal = isInternalAttendee({ name: p.name, email: p.email });
 
     const historySnippets = (history?.snippets ?? []).map((s) => ({
       subject: s.subject,
@@ -196,6 +199,7 @@ export async function generateAttendeeIntel(snapshot?: TodaySnapshot): Promise<A
       meetingTitle: p.meetingTitle,
       meetingTime: p.meetingTime,
       recurring: Boolean(p.recurring),
+      internal,
       companyGuess: ctx?.companyGuess || p.company || '',
       firstContact: history?.firstContact
         ? {

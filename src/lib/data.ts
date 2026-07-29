@@ -92,7 +92,10 @@ export interface Call {
 export interface AsanaTask {
   id: string;
   title: string;
+  /** The Asana board, e.g. "IFG Tasks" or "Kory NON-IFG". */
   project: string;
+  /** The column within that board, e.g. "Personal", "YPO", "General". */
+  section?: string;
   assignee: string;
   dueDate: string;
   priority: Priority;

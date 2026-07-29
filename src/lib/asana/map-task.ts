@@ -55,10 +55,19 @@ function resolveStatus(
 
 function sectionName(task: AsanaApiTask): string {
   const section = task.memberships?.find((m) => m.section?.name)?.section?.name;
-  return section ?? 'General';
+  // Asana returns the literal string "(no section)" for uncategorised tasks;
+  // showing that as a column heading looks like a bug.
+  if (!section || /^\(?no section\)?$/i.test(section.trim())) return 'General';
+  return section;
 }
 
-export function mapAsanaTaskToDashboard(task: AsanaApiTask): AsanaTask {
+/** The board a task lives on, e.g. "IFG Tasks" — distinct from its section. */
+function projectName(task: AsanaApiTask, fallback: string): string {
+  const named = task.memberships?.find((m) => m.project?.name)?.project?.name;
+  return named ?? fallback ?? 'Asana';
+}
+
+export function mapAsanaTaskToDashboard(task: AsanaApiTask, project = ''): AsanaTask {
   const status = resolveStatus(task.completed, task.due_on ?? null);
   const assignee = task.assignee?.name ?? 'Unassigned';
   const initials = assignee
@@ -71,7 +80,10 @@ export function mapAsanaTaskToDashboard(task: AsanaApiTask): AsanaTask {
   return {
     id: task.gid,
     title: task.name,
-    project: sectionName(task),
+    // `project` used to hold the SECTION name, so the tab showed sections as
+    // if they were boards. They are now separate fields.
+    project: projectName(task, project),
+    section: sectionName(task),
     assignee,
     dueDate: formatDueLabel(task.due_on),
     priority: parsePriority(task),

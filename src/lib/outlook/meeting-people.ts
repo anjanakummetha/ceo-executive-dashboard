@@ -16,6 +16,23 @@ export type TodayPerson = Attendee & {
 
 const KORY_PATTERN = /kory\s*mitchell/i;
 
+/** IFG's own domains — colleagues, not people Kory needs a background brief on. */
+const IFG_DOMAIN = /@(iconicfounders\.com|ifg\.vc)$/i;
+
+/**
+ * True for Kory's own team.
+ *
+ * Only Kory was excluded from the attendee roster, so research ran on Heidi,
+ * Natalie, Matt and Sujash and came back with nothing useful — which is most of
+ * why the bios read as thin. Colleagues still appear as attendees; they just do
+ * not get researched.
+ */
+export function isInternalAttendee(person: { name?: string; email?: string }): boolean {
+  const email = (person.email ?? '').trim();
+  if (email && IFG_DOMAIN.test(email)) return true;
+  return isKoryAttendee(person.name ?? '');
+}
+
 function companyFromEmail(email: string): string {
   const domain = email.split('@')[1]?.toLowerCase() ?? '';
   if (!domain || /^(gmail|yahoo|hotmail|outlook|icloud|me|live)\./i.test(domain)) return '';

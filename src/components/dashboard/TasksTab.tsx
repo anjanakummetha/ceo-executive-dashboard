@@ -29,6 +29,67 @@ interface SyncPayload {
   syncedAt: string;
 }
 
+interface SectionGroup {
+  section: string;
+  tasks: AsanaTask[];
+}
+
+interface ProjectGroup {
+  project: string;
+  tasks: AsanaTask[];
+  sections: SectionGroup[];
+  overdue: number;
+}
+
+const STATUS_RANK: Record<AsanaTask['status'], number> = {
+  overdue: 0,
+  'due-today': 1,
+  'in-progress': 2,
+  upcoming: 3,
+};
+
+/** Board -> section, most urgent board first. */
+function groupByProjectAndSection(tasks: AsanaTask[]): ProjectGroup[] {
+  const byProject = new Map<string, AsanaTask[]>();
+  for (const task of tasks) {
+    const key = task.project || 'Asana';
+    const bucket = byProject.get(key);
+    if (bucket) bucket.push(task);
+    else byProject.set(key, [task]);
+  }
+
+  const groups: ProjectGroup[] = [];
+  for (const [project, projectTasks] of byProject) {
+    const bySection = new Map<string, AsanaTask[]>();
+    for (const task of projectTasks) {
+      const key = task.section || 'General';
+      const bucket = bySection.get(key);
+      if (bucket) bucket.push(task);
+      else bySection.set(key, [task]);
+    }
+    const sections = [...bySection.entries()]
+      .map(([section, sectionTasks]) => ({
+        section,
+        tasks: [...sectionTasks].sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status]),
+      }))
+      .sort((a, b) => {
+        const urgency =
+          STATUS_RANK[a.tasks[0]?.status ?? 'upcoming'] -
+          STATUS_RANK[b.tasks[0]?.status ?? 'upcoming'];
+        return urgency !== 0 ? urgency : a.section.localeCompare(b.section);
+      });
+    groups.push({
+      project,
+      tasks: projectTasks,
+      sections,
+      overdue: projectTasks.filter((t) => t.status === 'overdue').length,
+    });
+  }
+
+  // Boards with overdue work surface first; ties break on volume.
+  return groups.sort((a, b) => b.overdue - a.overdue || b.tasks.length - a.tasks.length);
+}
+
 export default function TasksTab() {
   const [asanaItems, setAsanaItems] = useState<AsanaTask[]>([]);
   const [asanaFilter, setAsanaFilter] = useState<'all' | 'overdue' | 'due-today'>('all');
@@ -68,6 +129,10 @@ export default function TasksTab() {
     if (asanaFilter === 'due-today') return t.status === 'due-today';
     return true;
   });
+
+  // Grouped board -> section, so work and personal read separately instead of
+  // arriving as one undifferentiated list across every project.
+  const grouped = groupByProjectAndSection(filteredAsana);
 
   const overdueCount = asanaItems.filter((t) => t.status === 'overdue').length;
   const syncedLabel = syncedAt
@@ -221,14 +286,74 @@ export default function TasksTab() {
               No tasks match this filter.
             </p>
           )}
-          {filteredAsana.map((task, idx) => {
-            const sc = asanaStatusConfig[task.status];
-            return (
+          {grouped.map((group) => (
+            <div key={group.project}>
+              <div
+                className="px-4 py-2 flex items-center justify-between sticky top-0 z-10"
+                style={{
+                  background: 'rgba(201,160,68,0.10)',
+                  borderTop: '1px solid rgba(201,160,68,0.22)',
+                  borderBottom: '1px solid rgba(201,160,68,0.22)',
+                  backdropFilter: 'blur(6px)',
+                }}
+              >
+                <span
+                  style={{
+                    color: 'var(--gold-light)',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: '0.4px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {group.project}
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                  {group.overdue > 0 && (
+                    <span style={{ color: 'var(--danger)', fontWeight: 700 }}>
+                      {group.overdue} overdue ·{' '}
+                    </span>
+                  )}
+                  {group.tasks.length} task{group.tasks.length === 1 ? '' : 's'}
+                </span>
+              </div>
+
+              {group.sections.map((sectionGroup) => (
+                <div key={`${group.project}-${sectionGroup.section}`}>
+                  {/* Only label sections when the board actually uses more than one. */}
+                  {group.sections.length > 1 && (
+                    <div
+                      className="px-4 py-1.5"
+                      style={{
+                        background: 'rgba(0,0,0,0.02)',
+                        borderBottom: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: '0.3px',
+                        }}
+                      >
+                        {sectionGroup.section}
+                        <span style={{ color: 'var(--text-faint)', fontWeight: 500 }}>
+                          {' '}
+                          · {sectionGroup.tasks.length}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+
+                  {sectionGroup.tasks.map((task, idx) => {
+                    const sc = asanaStatusConfig[task.status];
+                    return (
               <div
                 key={task.id}
                 style={{
                   borderBottom:
-                    idx < filteredAsana.length - 1
+                    idx < sectionGroup.tasks.length - 1
                       ? '1px solid var(--border-subtle)'
                       : 'none',
                   transition: 'all 0.2s',
@@ -282,9 +407,11 @@ export default function TasksTab() {
                       >
                         {sc.label}
                       </span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{task.project}</span>
-                      {task.assignee && (
-                        <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>· {task.assignee}</span>
+                      {/* The board and section are already the group headers. */}
+                      {group.sections.length === 1 && task.section && (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                          {task.section}
+                        </span>
                       )}
                       <div className="flex items-center gap-1 ml-auto">
                         <Clock size={9} style={{ color: 'var(--text-muted)' }} />
@@ -317,8 +444,12 @@ export default function TasksTab() {
                   </div>
                 </div>
               </div>
-            );
-          })}
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
 
         <div

@@ -57,6 +57,8 @@ export function attendeeIntelPrompt(
     meetingTitle: string;
     meetingTime: string;
     recurring: boolean;
+    /** One of Kory's own IFG colleagues — list them, but never research them. */
+    internal?: boolean;
     companyGuess: string;
     firstContact:
       | { date: string; from: string; to: string[]; cc: string[]; subject: string; preview: string }
@@ -81,10 +83,22 @@ Each person has PROVIDED_EMAIL_CONTEXT drawn from Kory's real Outlook mailbox (i
 Kory, to_them = Kory emailed them, other = a third party). This is your ONLY source for how they know
 Kory — never invent it.
 
-For NON-recurring attendees:
+For INTERNAL attendees (internal=true — Kory's own IFG colleagues):
+- SKIP web research entirely. Kory works with these people every day; a public bio adds nothing.
+- Set "bio" to "" and "relationshipContext" to a short factual note ("IFG team").
+- Still set "actionNeeded"/"actionNote" from the email history — that part matters for anyone.
+
+For NON-recurring EXTERNAL attendees (internal=false):
 - RESEARCH their public professional background with web_search (current role, company, career history,
   education, board seats, recent public news). Prioritize LinkedIn, the company site, reputable news.
   Use name + company/email domain to disambiguate. Put verified public findings in "bio".
+- ACCURACY OVER COVERAGE. Only state something you actually found for THIS person. Common names return
+  several different people — if you cannot confirm which one this is from the company, email domain or
+  email history, do NOT guess. Write exactly: "Limited public information available." and set
+  "confidence" to "low". A short honest bio is worth more than a confident wrong one, and a bio about
+  the wrong person is the one failure Kory would notice immediately.
+- Never pad a bio with generic filler ("an experienced professional", "a seasoned leader"). If the only
+  verified facts are a role and a company, say just that.
 - DETERMINE "introducedBy" from firstContact and the earliest snippets: if a third party sent or was
   CC'd on the first email, or is named in it ("X suggested I reach out", "great connecting via X",
   "X made the intro", "looping in X"), name that person. If Kory (direction to_them) or the attendee
