@@ -29,12 +29,36 @@ function authRequired(): boolean {
   return process.env.REQUIRE_AUTH === 'true';
 }
 
+/**
+ * The 4:45 AM job has no browser session, so it authenticates with a shared
+ * secret instead. Deliberately narrow: one path, POST only, and only when
+ * BRIEFING_CRON_TOKEN is configured — an unset token grants nothing.
+ */
+function isBriefingCronRequest(request: NextRequest): boolean {
+  if (request.method !== 'POST') return false;
+  if (request.nextUrl.pathname !== '/api/hermes/briefing') return false;
+  const expected = process.env.BRIEFING_CRON_TOKEN;
+  if (!expected) return false;
+  const provided = request.headers.get('x-briefing-token');
+  if (!provided || provided.length !== expected.length) return false;
+  // Constant-time-ish compare: never short-circuit on the first differing byte.
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export async function proxy(request: NextRequest) {
   if (!authRequired()) {
     return NextResponse.next();
   }
 
   const { pathname } = request.nextUrl;
+
+  if (isBriefingCronRequest(request)) {
+    return NextResponse.next();
+  }
 
   if (isPublic(pathname)) {
     if (pathname === '/login' && (await hasValidSession(request))) {

@@ -90,6 +90,125 @@ function briefToHtml(sections: Section[], insights: string[]): string {
   return parts.join('');
 }
 
+// --- morning email -------------------------------------------------------
+// Inline styles only: Outlook strips <style> blocks, and tables/flex render
+// unpredictably across clients. Plain blocks survive everywhere.
+
+const EMAIL_WRAP =
+  'font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;' +
+  'font-size:15px;line-height:1.55;color:#23282f;max-width:640px;';
+const H2 =
+  'font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;' +
+  'color:#9a7b2f;margin:26px 0 10px;';
+const LI = 'margin:0 0 8px;';
+
+function emailSection(heading: string, items: string[]): string {
+  if (!items.length) return '';
+  return (
+    `<div style="${H2}">${escapeHtml(heading)}</div>` +
+    `<ul style="margin:0;padding-left:20px;">` +
+    items.map((i) => `<li style="${LI}">${i}</li>`).join('') +
+    `</ul>`
+  );
+}
+
+/** The 4:45 AM email: what Kory needs before the day starts. */
+export function composeMorningEmailHtml(input: {
+  dateLabel: string;
+  insights: string[];
+  sections: Section[];
+  overdue: OverdueTask[];
+  people: AttendeeIntel[];
+}): string {
+  const { dateLabel, insights, sections, overdue, people } = input;
+
+  const overdueItems = [...overdue]
+    .sort((a, b) => b.daysOverdue - a.daysOverdue)
+    .slice(0, 12)
+    .map(
+      (t) =>
+        `${escapeHtml(t.title)} — <span style="color:#b3261e;font-weight:600;">${t.daysOverdue}d overdue</span>`,
+    );
+
+  const peopleItems = people
+    .filter((p) => !isInternalAttendee({ name: p.name, email: p.email }))
+    .map((p) => {
+      const role = escapeHtml(p.emailContext?.companyGuess ?? '');
+      const when = escapeHtml([p.meetingTime, p.meetingTitle].filter(Boolean).join(' — '));
+      // One supporting line: what to do beats who they are at 4:45 AM.
+      const note = p.actionNeeded && p.actionNote ? p.actionNote : p.angle || p.bio || '';
+      return (
+        `<strong>${escapeHtml(p.name)}</strong>${role ? ` — ${role}` : ''}` +
+        (when ? `<br><span style="color:#6b7280;font-size:13px;">${when}</span>` : '') +
+        (note
+          ? `<br><span style="font-size:14px;">${escapeHtml(String(note).slice(0, 240))}</span>`
+          : '')
+      );
+    });
+
+  const body =
+    emailSection('Key insights', insights.map(escapeHtml)) +
+    sections.map((s) => emailSection(s.heading, s.points.map(escapeHtml))).join('') +
+    emailSection('Overdue', overdueItems) +
+    emailSection("Today's people", peopleItems);
+
+  return (
+    `<div style="${EMAIL_WRAP}">` +
+    `<div style="font-size:19px;font-weight:700;margin:0 0 2px;">Good morning, Kory</div>` +
+    `<div style="color:#6b7280;font-size:13px;">${escapeHtml(dateLabel)}</div>` +
+    (body ||
+      `<p style="margin-top:22px;">Nothing needing your attention this morning.</p>`) +
+    `<div style="margin-top:30px;padding-top:12px;border-top:1px solid #e5e7eb;` +
+    `color:#9ca3af;font-size:12px;">Generated from your calendar, inbox and Asana. ` +
+    `Open the dashboard for the full picture.</div>` +
+    `</div>`
+  );
+}
+
+/** Plain-text twin, for clients that refuse HTML. */
+export function composeMorningEmailText(input: {
+  dateLabel: string;
+  insights: string[];
+  sections: Section[];
+  overdue: OverdueTask[];
+  people: AttendeeIntel[];
+}): string {
+  const { dateLabel, insights, sections, overdue, people } = input;
+  const part = (heading: string, items: string[]) =>
+    items.length ? `${heading.toUpperCase()}\n${items.map((i) => `- ${i}`).join('\n')}\n` : '';
+
+  return [
+    `Good morning, Kory`,
+    dateLabel,
+    '',
+    part('Key insights', insights),
+    ...sections.map((s) => part(s.heading, s.points)),
+    part(
+      'Overdue',
+      [...overdue]
+        .sort((a, b) => b.daysOverdue - a.daysOverdue)
+        .slice(0, 12)
+        .map((t) => `${t.title} — ${t.daysOverdue}d overdue`),
+    ),
+    part(
+      "Today's people",
+      people
+        .filter((p) => !isInternalAttendee({ name: p.name, email: p.email }))
+        .map((p) =>
+          [
+            p.name,
+            p.emailContext?.companyGuess ?? '',
+            [p.meetingTime, p.meetingTitle].filter(Boolean).join(' — '),
+          ]
+            .filter(Boolean)
+            .join(' | '),
+        ),
+    ),
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 export async function generateDailyBriefing(
   snapshot?: TodaySnapshot,
 ): Promise<DailyBriefingRecord> {
@@ -131,12 +250,32 @@ export async function generateDailyBriefing(
     conversationalBrief: briefToProse(briefSections, keyInsights),
     emailDraft: {
       to: defaultEmailRecipient(),
-      subject: parsed.emailDraft?.subject ?? `CEO Daily Briefing — ${data.date}`,
+      subject: `CEO Daily Briefing — ${data.date}`,
       bodyText: briefToProse(briefSections, keyInsights),
       bodyHtml: briefToHtml(briefSections, keyInsights),
     },
     source: 'hermes',
   };
+
+  // The morning email carries today's people and the overdue list too, so it
+  // stands on its own without opening the dashboard. Attendee intel is
+  // generated here rather than fetched later so the 4:45 run warms that cache
+  // for the day; a failure downgrades the email rather than losing it.
+  let people: AttendeeIntel[] = [];
+  try {
+    people = (await generateAttendeeIntel(data)).people ?? [];
+  } catch {
+    people = [];
+  }
+  const emailInput = {
+    dateLabel: data.date,
+    insights: keyInsights,
+    sections: briefSections,
+    overdue,
+    people,
+  };
+  record.emailDraft.bodyHtml = composeMorningEmailHtml(emailInput);
+  record.emailDraft.bodyText = composeMorningEmailText(emailInput);
 
   writeDailyBriefing(record);
   return record;
