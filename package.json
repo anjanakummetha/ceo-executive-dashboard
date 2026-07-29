@@ -11,7 +11,8 @@
     "probe:outlook": "node scripts/probe-outlook.mjs",
     "probe:linkedin": "node scripts/probe-linkedin.mjs",
     "test:readonly": "node --import tsx --test src/lib/composio/client.test.mjs",
-    "test:no-write-slugs": "node scripts/check-no-write-slugs.mjs"
+    "test:no-write-slugs": "node scripts/check-no-write-slugs.mjs",
+    "test:email": "node --import tsx --test src/lib/ai/morning-email.test.mjs"
   },
   "dependencies": {
     "jose": "^6.2.3",

@@ -102,6 +102,32 @@ const H2 =
   'color:#9a7b2f;margin:26px 0 10px;';
 const LI = 'margin:0 0 8px;';
 
+/** How many external guests get the full treatment before the list compacts.
+ *  Three keeps a busy day readable without Gmail clipping it. */
+const PEOPLE_IN_FULL = 3;
+
+function trim(text: string, max: number): string {
+  const clean = text.trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max).replace(/[\s,;:.]+\S*$/, '')}…`;
+}
+
+/** A real person's name, or "" for the placeholders that say nothing. */
+function namedIntroducer(raw: string | undefined): string {
+  const value = (raw ?? '').trim();
+  if (!value) return '';
+  if (/^(unknown|direct outreach|n\/?a|none)$/i.test(value)) return '';
+  return value;
+}
+
+function isEmptyBio(raw: string | undefined): boolean {
+  const value = (raw ?? '').trim();
+  return (
+    !value ||
+    /^(limited public information available\.?|no ai bio generated\.?)$/i.test(value)
+  );
+}
+
 function emailSection(heading: string, items: string[]): string {
   if (!items.length) return '';
   return (
@@ -130,21 +156,48 @@ export function composeMorningEmailHtml(input: {
         `${escapeHtml(t.title)} — <span style="color:#b3261e;font-weight:600;">${t.daysOverdue}d overdue</span>`,
     );
 
-  const peopleItems = people
-    .filter((p) => !isInternalAttendee({ name: p.name, email: p.email }))
-    .map((p) => {
-      const role = escapeHtml(p.emailContext?.companyGuess ?? '');
-      const when = escapeHtml([p.meetingTime, p.meetingTitle].filter(Boolean).join(' — '));
-      // One supporting line: what to do beats who they are at 4:45 AM.
-      const note = p.actionNeeded && p.actionNote ? p.actionNote : p.angle || p.bio || '';
-      return (
-        `<strong>${escapeHtml(p.name)}</strong>${role ? ` — ${role}` : ''}` +
-        (when ? `<br><span style="color:#6b7280;font-size:13px;">${when}</span>` : '') +
-        (note
-          ? `<br><span style="font-size:14px;">${escapeHtml(String(note).slice(0, 240))}</span>`
-          : '')
-      );
-    });
+  // The email has to work without opening the dashboard, so the fields Kory
+  // cannot reconstruct on his own travel with it: who introduced them, what is
+  // outstanding, and what to aim for. The prior-relationship narrative is the
+  // longest block and the most reconstructable, so it stays on the dashboard.
+  const externals = people.filter((p) => !isInternalAttendee({ name: p.name, email: p.email }));
+  const detailed = externals.slice(0, PEOPLE_IN_FULL);
+  const remainder = externals.slice(PEOPLE_IN_FULL);
+
+  const line = (label: string, value: string, colour = '#23282f') =>
+    `<br><span style="font-size:14px;color:${colour};">` +
+    `<span style="color:#6b7280;">${label}</span> ${escapeHtml(value)}</span>`;
+
+  const peopleItems = detailed.map((p) => {
+    const role = escapeHtml(p.emailContext?.companyGuess ?? '');
+    const when = escapeHtml([p.meetingTime, p.meetingTitle].filter(Boolean).join(' · '));
+    const introducer = namedIntroducer(p.introducedBy);
+    const outstanding = p.actionNeeded && p.actionNote ? String(p.actionNote) : '';
+    // "Limited public information available" is honest on the dashboard and
+    // pure noise in an email — drop it rather than spend a line saying nothing.
+    const bio = isEmptyBio(p.bio) ? '' : String(p.bio);
+
+    return (
+      `<strong>${escapeHtml(p.name)}</strong>${role ? ` — ${role}` : ''}` +
+      (when ? `<br><span style="color:#6b7280;font-size:13px;">${when}</span>` : '') +
+      (introducer ? line('Introduced by', introducer) : '') +
+      (outstanding ? line('⚠', trim(outstanding, 220), '#8a5a00') : '') +
+      (p.angle ? line('Angle:', trim(String(p.angle), 240)) : '') +
+      (!introducer && !outstanding && !p.angle && bio
+        ? `<br><span style="font-size:14px;">${escapeHtml(trim(bio, 200))}</span>`
+        : '')
+    );
+  });
+
+  if (remainder.length) {
+    peopleItems.push(
+      `<span style="color:#6b7280;">Also meeting: </span>` +
+        remainder
+          .map((p) => `${escapeHtml(p.name)}${p.meetingTime ? ` (${escapeHtml(p.meetingTime)})` : ''}`)
+          .join(', ') +
+        ` <span style="color:#6b7280;">— full briefs on the dashboard.</span>`,
+    );
+  }
 
   const body =
     emailSection('Key insights', insights.map(escapeHtml)) +
@@ -163,6 +216,42 @@ export function composeMorningEmailHtml(input: {
     `Open the dashboard for the full picture.</div>` +
     `</div>`
   );
+}
+
+/** Same people content as the HTML, flattened. */
+function peopleTextItems(people: AttendeeIntel[]): string[] {
+  const externals = people.filter((p) => !isInternalAttendee({ name: p.name, email: p.email }));
+  const items = externals.slice(0, PEOPLE_IN_FULL).map((p) => {
+    const head = [
+      p.name,
+      p.emailContext?.companyGuess ?? '',
+      [p.meetingTime, p.meetingTitle].filter(Boolean).join(' · '),
+    ]
+      .filter(Boolean)
+      .join(' | ');
+    const introducer = namedIntroducer(p.introducedBy);
+    const outstanding = p.actionNeeded && p.actionNote ? String(p.actionNote) : '';
+    const extras = [
+      introducer ? `    Introduced by ${introducer}` : '',
+      outstanding ? `    ! ${trim(outstanding, 220)}` : '',
+      p.angle ? `    Angle: ${trim(String(p.angle), 240)}` : '',
+    ].filter(Boolean);
+    // Same fallback as the HTML: a real bio only when nothing more useful exists.
+    if (!extras.length && !isEmptyBio(p.bio)) {
+      extras.push(`    ${trim(String(p.bio), 200)}`);
+    }
+    return [head, ...extras].join('\n');
+  });
+
+  const remainder = externals.slice(PEOPLE_IN_FULL);
+  if (remainder.length) {
+    items.push(
+      `Also meeting: ${remainder
+        .map((p) => `${p.name}${p.meetingTime ? ` (${p.meetingTime})` : ''}`)
+        .join(', ')} — full briefs on the dashboard.`,
+    );
+  }
+  return items;
 }
 
 /** Plain-text twin, for clients that refuse HTML. */
@@ -190,20 +279,7 @@ export function composeMorningEmailText(input: {
         .slice(0, 12)
         .map((t) => `${t.title} — ${t.daysOverdue}d overdue`),
     ),
-    part(
-      "Today's people",
-      people
-        .filter((p) => !isInternalAttendee({ name: p.name, email: p.email }))
-        .map((p) =>
-          [
-            p.name,
-            p.emailContext?.companyGuess ?? '',
-            [p.meetingTime, p.meetingTitle].filter(Boolean).join(' — '),
-          ]
-            .filter(Boolean)
-            .join(' | '),
-        ),
-    ),
+    part("Today's people", peopleTextItems(people)),
   ]
     .filter(Boolean)
     .join('\n');
