@@ -75,6 +75,14 @@ export function buildTodayPeopleFromMeetings(meetings: Meeting[]): TodayPerson[]
       if (existing) {
         // A person is only "recurring" if EVERY meeting they're in today recurs.
         if (!recurring) existing.recurring = false;
+        // A colleague can sit on one invite twice — Sujash appears on both his
+        // IFG address and his university one. Whichever landed first won the
+        // dedupe, so his personal address could make a teammate look external.
+        // The work address always wins.
+        if (attendee.email && IFG_DOMAIN.test(attendee.email) && !IFG_DOMAIN.test(existing.email ?? '')) {
+          existing.email = attendee.email;
+          existing.company = attendee.company || companyFromEmail(attendee.email);
+        }
         continue;
       }
       seen.set(key, {
