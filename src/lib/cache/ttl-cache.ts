@@ -46,6 +46,5 @@ export const CACHE_TTL = {
   badges: 5 * 60_000,
   calendars: 24 * 60 * 60_000, // calendar list rarely changes
   weekAhead: 30 * 60_000, // shared fetch for week-ahead / family / reservations
-  lexi: 60_000, // Lexi assistant panel (localhost + SQLite, cheap)
   aiDay: 12 * 60 * 60_000,
 } as const;

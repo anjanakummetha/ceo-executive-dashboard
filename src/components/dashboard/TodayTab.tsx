@@ -7,7 +7,6 @@ import { buildTodayPeopleFromMeetings, isInternalAttendee } from '@/lib/outlook/
 import { useSync } from '@/components/dashboard/SyncProvider';
 import { useAttendeeIntel } from '@/components/dashboard/AttendeeIntelProvider';
 import { useRefreshSignal } from '@/components/dashboard/RefreshSignalProvider';
-import LexiPanel from '@/components/dashboard/LexiPanel';
 import WeekAheadPanel from '@/components/dashboard/WeekAheadPanel';
 import ExecutiveSnapshot from '@/components/dashboard/ExecutiveSnapshot';
 import type { TabId } from '@/components/dashboard/TabNav';
@@ -501,9 +500,6 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
 
    {/* ── Executive Snapshot: day-at-a-glance KPIs + focus guardian ── */}
    <ExecutiveSnapshot onNavigate={onNavigate} />
-
-   {/* ── Lexi Assistant (read-only view of the scheduling agent) ── */}
-   <LexiPanel />
 
    {/* ── Week ahead: density, family dates, reservations ── */}
    <WeekAheadPanel />
