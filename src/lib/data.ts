@@ -278,6 +278,8 @@ export interface OverdueTask {
   source: TaskSource;
   daysOverdue: number;
   priority: Priority;
+  /** The Asana board the task lives on, e.g. "Kory NON-IFG". */
+  project?: string;
 }
 
 // ─── PERFORMANCE INSIGHTS ──────────────────────────────────────────────────

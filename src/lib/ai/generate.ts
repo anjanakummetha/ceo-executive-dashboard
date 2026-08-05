@@ -1,4 +1,4 @@
-import type { AIPriorityItem, Email, OverdueTask } from '@/lib/data';
+import type { AIPriorityItem, AsanaTask, Email, Meeting, OverdueTask } from '@/lib/data';
 import { readAiCache, writeAiCache } from '@/lib/ai/cache-store';
 import type {
   AttendeeEmailContext,
@@ -43,6 +43,7 @@ export function overdueFromSnapshot(snapshot: TodaySnapshot): OverdueTask[] {
       source: 'asana' as const,
       daysOverdue: parseDaysOverdue(t.dueDate),
       priority: t.priority,
+      project: t.project,
     }));
 }
 
@@ -102,9 +103,177 @@ const H2 =
   'color:#9a7b2f;margin:26px 0 10px;';
 const LI = 'margin:0 0 8px;';
 
-/** How many external guests get the full treatment before the list compacts.
- *  Three keeps a busy day readable without Gmail clipping it. */
-const PEOPLE_IN_FULL = 3;
+/** Safety cap on fully-briefed guests. Every FIRST-TIME external guest gets the
+ *  full treatment (that is what a prebrief is for); recurring guests compact to
+ *  a name-and-time line because Kory already knows them. Six full briefs is a
+ *  very unusual day and keeps the email from running away. */
+const PEOPLE_IN_FULL = 6;
+
+/** How many unread (non-flagged) inbox lines the email carries before counting
+ *  the rest — the dashboard has the full list. */
+const UNREAD_IN_EMAIL = 8;
+const FLAGGED_IN_EMAIL = 10;
+
+/** Everything the 4:45 AM email carries. All of it is data the dashboard
+ *  already fetched for the day — composing costs no extra model calls. */
+export interface MorningEmailInput {
+  dateLabel: string;
+  insights: string[];
+  sections: Section[];
+  /** Full day from the calendar snapshot — meetings AND blocks/holds. */
+  schedule?: Meeting[];
+  /** Every Asana task due today. */
+  dueToday?: AsanaTask[];
+  overdue: OverdueTask[];
+  /** Inbox snapshot — flagged and unread items travel with the email. */
+  inbox?: Email[];
+  linkedInUnread?: number;
+  people: AttendeeIntel[];
+  /** False when overnight attendee research failed and `people` is the
+   *  calendar roster only — the email says so instead of silently thinning. */
+  peopleResearchOk?: boolean;
+}
+
+const MUTED = 'color:#6b7280;';
+const SMALL_MUTED = 'color:#6b7280;font-size:13px;';
+
+function sortByStart(schedule: Meeting[]): Meeting[] {
+  return [...schedule].sort((a, b) => (a.startIso ?? '').localeCompare(b.startIso ?? ''));
+}
+
+/** "7:00 AM — Keystone QofE (45 min · Shift · video)  With: Hank Tanner +2" */
+function scheduleHtmlItems(schedule: Meeting[]): string[] {
+  const ordered = sortByStart(schedule);
+  const meetings = ordered.filter((m) => (m.scheduleKind ?? 'meeting') === 'meeting');
+  const blocks = ordered.filter((m) => (m.scheduleKind ?? 'meeting') !== 'meeting');
+
+  const items = meetings.map((m) => {
+    const meta = [m.duration, m.location, m.type === 'video' ? 'video' : m.type === 'phone' ? 'phone' : '']
+      .filter(Boolean)
+      .join(' · ');
+    const names = m.attendees.map((a) => a.name);
+    const shown = names.slice(0, 4).join(', ');
+    const extra = names.length > 4 ? ` +${names.length - 4}` : '';
+    return (
+      `<strong>${escapeHtml(m.time)}</strong> — ${escapeHtml(m.title)}` +
+      (meta ? ` <span style="${SMALL_MUTED}">(${escapeHtml(meta)})</span>` : '') +
+      (names.length
+        ? `<br><span style="${SMALL_MUTED}">With: ${escapeHtml(shown + extra)}</span>`
+        : '')
+    );
+  });
+
+  if (blocks.length) {
+    items.push(
+      `<span style="${MUTED}">Blocks &amp; holds: ` +
+        escapeHtml(blocks.map((b) => `${b.time} ${b.title}`).join(' · ')) +
+        `</span>`,
+    );
+  }
+  return items;
+}
+
+function scheduleTextItems(schedule: Meeting[]): string[] {
+  const ordered = sortByStart(schedule);
+  const meetings = ordered.filter((m) => (m.scheduleKind ?? 'meeting') === 'meeting');
+  const blocks = ordered.filter((m) => (m.scheduleKind ?? 'meeting') !== 'meeting');
+  const items = meetings.map((m) => {
+    const meta = [m.duration, m.location, m.type === 'video' ? 'video' : m.type === 'phone' ? 'phone' : '']
+      .filter(Boolean)
+      .join(' · ');
+    const names = m.attendees.map((a) => a.name);
+    const shown = names.slice(0, 4).join(', ');
+    const extra = names.length > 4 ? ` +${names.length - 4}` : '';
+    return `${m.time} — ${m.title}${meta ? ` (${meta})` : ''}${names.length ? `\n    With: ${shown}${extra}` : ''}`;
+  });
+  if (blocks.length) {
+    items.push(`Blocks & holds: ${blocks.map((b) => `${b.time} ${b.title}`).join(' · ')}`);
+  }
+  return items;
+}
+
+function taskMeta(t: AsanaTask): string {
+  const priority = t.priority === 'critical' || t.priority === 'high' ? `${t.priority} priority` : '';
+  return [t.project, priority].filter(Boolean).join(' · ');
+}
+
+function dueTodayHtmlItems(dueToday: AsanaTask[]): string[] {
+  return dueToday.map((t) => {
+    const meta = taskMeta(t);
+    return `${escapeHtml(t.title)}${meta ? ` <span style="${SMALL_MUTED}">— ${escapeHtml(meta)}</span>` : ''}`;
+  });
+}
+
+function dueTodayTextItems(dueToday: AsanaTask[]): string[] {
+  return dueToday.map((t) => {
+    const meta = taskMeta(t);
+    return `${t.title}${meta ? ` — ${meta}` : ''}`;
+  });
+}
+
+/** Flagged first (all of them), then the newest unread, then the count of the
+ *  rest — the raw fields the Inbox tab shows, with no model call. */
+function inboxHtmlItems(inbox: Email[], linkedInUnread: number): string[] {
+  const flagged = inbox.filter((e) => e.flagged);
+  const unread = inbox.filter((e) => e.unread && !e.flagged);
+  const items = flagged
+    .slice(0, FLAGGED_IN_EMAIL)
+    .map(
+      (e) =>
+        `<strong>${escapeHtml(e.sender)}</strong> — ${escapeHtml(e.subject)} ` +
+        `<span style="${SMALL_MUTED}">(flagged · ${escapeHtml(e.time)})</span>`,
+    );
+  if (flagged.length > FLAGGED_IN_EMAIL) {
+    items.push(`<span style="${MUTED}">${flagged.length - FLAGGED_IN_EMAIL} more flagged — dashboard.</span>`);
+  }
+  items.push(
+    ...unread
+      .slice(0, UNREAD_IN_EMAIL)
+      .map(
+        (e) =>
+          `${escapeHtml(e.sender)} — ${escapeHtml(e.subject)} ` +
+          `<span style="${SMALL_MUTED}">(${escapeHtml(e.time)})</span>`,
+      ),
+  );
+  if (unread.length > UNREAD_IN_EMAIL) {
+    items.push(`<span style="${MUTED}">${unread.length - UNREAD_IN_EMAIL} more unread — dashboard.</span>`);
+  }
+  if (linkedInUnread > 0) {
+    items.push(`<span style="${MUTED}">LinkedIn: ${linkedInUnread} unread message${linkedInUnread === 1 ? '' : 's'}.</span>`);
+  }
+  return items;
+}
+
+function inboxTextItems(inbox: Email[], linkedInUnread: number): string[] {
+  const flagged = inbox.filter((e) => e.flagged);
+  const unread = inbox.filter((e) => e.unread && !e.flagged);
+  const items = flagged
+    .slice(0, FLAGGED_IN_EMAIL)
+    .map((e) => `${e.sender} — ${e.subject} (flagged · ${e.time})`);
+  if (flagged.length > FLAGGED_IN_EMAIL) items.push(`${flagged.length - FLAGGED_IN_EMAIL} more flagged — dashboard.`);
+  items.push(...unread.slice(0, UNREAD_IN_EMAIL).map((e) => `${e.sender} — ${e.subject} (${e.time})`));
+  if (unread.length > UNREAD_IN_EMAIL) items.push(`${unread.length - UNREAD_IN_EMAIL} more unread — dashboard.`);
+  if (linkedInUnread > 0) items.push(`LinkedIn: ${linkedInUnread} unread message${linkedInUnread === 1 ? '' : 's'}.`);
+  return items;
+}
+
+/** First-timers all get the full brief; recurring guests compact unless the
+ *  email history shows something awaiting Kory. */
+function splitPeople(externals: AttendeeIntel[]): {
+  detailed: AttendeeIntel[];
+  remainder: AttendeeIntel[];
+} {
+  const fresh = externals.filter((p) => !p.recurring);
+  const familiar = externals.filter((p) => p.recurring);
+  const promoted = familiar.filter((p) => p.actionNeeded && p.actionNote);
+  const detailed = [...fresh, ...promoted].slice(0, PEOPLE_IN_FULL);
+  const keep = new Set(detailed);
+  const remainder = externals.filter((p) => !keep.has(p));
+  return { detailed, remainder };
+}
+
+const RESEARCH_DOWN_NOTE =
+  'Overnight research did not run — names and times are from the calendar; full briefs are on the dashboard.';
 
 function trim(text: string, max: number): string {
   const clean = text.trim();
@@ -139,30 +308,25 @@ function emailSection(heading: string, items: string[]): string {
 }
 
 /** The 4:45 AM email: what Kory needs before the day starts. */
-export function composeMorningEmailHtml(input: {
-  dateLabel: string;
-  insights: string[];
-  sections: Section[];
-  overdue: OverdueTask[];
-  people: AttendeeIntel[];
-}): string {
+export function composeMorningEmailHtml(input: MorningEmailInput): string {
   const { dateLabel, insights, sections, overdue, people } = input;
+  const schedule = input.schedule ?? [];
+  const dueToday = input.dueToday ?? [];
+  const inbox = input.inbox ?? [];
 
   const overdueItems = [...overdue]
     .sort((a, b) => b.daysOverdue - a.daysOverdue)
-    .slice(0, 12)
-    .map(
-      (t) =>
-        `${escapeHtml(t.title)} — <span style="color:#b3261e;font-weight:600;">${t.daysOverdue}d overdue</span>`,
-    );
+    .map((t) => {
+      const meta = t.project ? ` <span style="${SMALL_MUTED}">· ${escapeHtml(t.project)}</span>` : '';
+      return `${escapeHtml(t.title)} — <span style="color:#b3261e;font-weight:600;">${t.daysOverdue}d overdue</span>${meta}`;
+    });
 
   // The email has to work without opening the dashboard, so the fields Kory
   // cannot reconstruct on his own travel with it: who introduced them, what is
   // outstanding, and what to aim for. The prior-relationship narrative is the
   // longest block and the most reconstructable, so it stays on the dashboard.
   const externals = people.filter((p) => !isInternalAttendee({ name: p.name, email: p.email }));
-  const detailed = externals.slice(0, PEOPLE_IN_FULL);
-  const remainder = externals.slice(PEOPLE_IN_FULL);
+  const { detailed, remainder } = splitPeople(externals);
 
   const line = (label: string, value: string, colour = '#23282f') =>
     `<br><span style="font-size:14px;color:${colour};">` +
@@ -198,12 +362,18 @@ export function composeMorningEmailHtml(input: {
         ` <span style="color:#6b7280;">— full briefs on the dashboard.</span>`,
     );
   }
+  if (peopleItems.length && input.peopleResearchOk === false) {
+    peopleItems.push(`<span style="${MUTED}">${escapeHtml(RESEARCH_DOWN_NOTE)}</span>`);
+  }
 
   const body =
     emailSection('Key insights', insights.map(escapeHtml)) +
     sections.map((s) => emailSection(s.heading, s.points.map(escapeHtml))).join('') +
+    emailSection("Today's schedule", scheduleHtmlItems(schedule)) +
+    emailSection("Today's people", peopleItems) +
+    emailSection('Due today', dueTodayHtmlItems(dueToday)) +
     emailSection('Overdue', overdueItems) +
-    emailSection("Today's people", peopleItems);
+    emailSection('Inbox — flagged & unread', inboxHtmlItems(inbox, input.linkedInUnread ?? 0));
 
   return (
     `<div style="${EMAIL_WRAP}">` +
@@ -219,9 +389,10 @@ export function composeMorningEmailHtml(input: {
 }
 
 /** Same people content as the HTML, flattened. */
-function peopleTextItems(people: AttendeeIntel[]): string[] {
+function peopleTextItems(people: AttendeeIntel[], researchOk: boolean): string[] {
   const externals = people.filter((p) => !isInternalAttendee({ name: p.name, email: p.email }));
-  const items = externals.slice(0, PEOPLE_IN_FULL).map((p) => {
+  const { detailed, remainder } = splitPeople(externals);
+  const items = detailed.map((p) => {
     const head = [
       p.name,
       p.emailContext?.companyGuess ?? '',
@@ -243,7 +414,6 @@ function peopleTextItems(people: AttendeeIntel[]): string[] {
     return [head, ...extras].join('\n');
   });
 
-  const remainder = externals.slice(PEOPLE_IN_FULL);
   if (remainder.length) {
     items.push(
       `Also meeting: ${remainder
@@ -251,17 +421,12 @@ function peopleTextItems(people: AttendeeIntel[]): string[] {
         .join(', ')} — full briefs on the dashboard.`,
     );
   }
+  if (items.length && !researchOk) items.push(RESEARCH_DOWN_NOTE);
   return items;
 }
 
 /** Plain-text twin, for clients that refuse HTML. */
-export function composeMorningEmailText(input: {
-  dateLabel: string;
-  insights: string[];
-  sections: Section[];
-  overdue: OverdueTask[];
-  people: AttendeeIntel[];
-}): string {
+export function composeMorningEmailText(input: MorningEmailInput): string {
   const { dateLabel, insights, sections, overdue, people } = input;
   const part = (heading: string, items: string[]) =>
     items.length ? `${heading.toUpperCase()}\n${items.map((i) => `- ${i}`).join('\n')}\n` : '';
@@ -272,14 +437,19 @@ export function composeMorningEmailText(input: {
     '',
     part('Key insights', insights),
     ...sections.map((s) => part(s.heading, s.points)),
+    part("Today's schedule", scheduleTextItems(input.schedule ?? [])),
+    part("Today's people", peopleTextItems(people, input.peopleResearchOk !== false)),
+    part('Due today', dueTodayTextItems(input.dueToday ?? [])),
     part(
       'Overdue',
       [...overdue]
         .sort((a, b) => b.daysOverdue - a.daysOverdue)
-        .slice(0, 12)
-        .map((t) => `${t.title} — ${t.daysOverdue}d overdue`),
+        .map(
+          (t) =>
+            `${t.title} — ${t.daysOverdue}d overdue${t.project ? ` · ${t.project}` : ''}`,
+        ),
     ),
-    part("Today's people", peopleTextItems(people)),
+    part('Inbox — flagged & unread', inboxTextItems(input.inbox ?? [], input.linkedInUnread ?? 0)),
   ]
     .filter(Boolean)
     .join('\n');
@@ -333,22 +503,30 @@ export async function generateDailyBriefing(
     source: 'hermes',
   };
 
-  // The morning email carries today's people and the overdue list too, so it
-  // stands on its own without opening the dashboard. Attendee intel is
+  // The morning email carries the full day — schedule, people, tasks, inbox —
+  // so it stands on its own without opening the dashboard. Attendee intel is
   // generated here rather than fetched later so the 4:45 run warms that cache
-  // for the day; a failure downgrades the email rather than losing it.
+  // for the day; a research failure downgrades the people section to the
+  // calendar roster (with an honest note) rather than silently dropping it.
   let people: AttendeeIntel[] = [];
+  let peopleResearchOk = true;
   try {
     people = (await generateAttendeeIntel(data)).people ?? [];
   } catch {
-    people = [];
+    peopleResearchOk = false;
+    people = rosterOnlyPeople(data);
   }
-  const emailInput = {
+  const emailInput: MorningEmailInput = {
     dateLabel: data.date,
     insights: keyInsights,
     sections: briefSections,
+    schedule: data.meetings,
+    dueToday: data.tasks.filter((t) => t.status === 'due-today'),
     overdue,
+    inbox: data.emails,
+    linkedInUnread: data.linkedInUnread,
     people,
+    peopleResearchOk,
   };
   record.emailDraft.bodyHtml = composeMorningEmailHtml(emailInput);
   record.emailDraft.bodyText = composeMorningEmailText(emailInput);
@@ -365,6 +543,39 @@ export async function getOrGenerateDailyBriefing(): Promise<DailyBriefingRecord>
 
 function intelKey(name: string, email?: string): string {
   return email?.trim().toLowerCase() || name.trim().toLowerCase();
+}
+
+/** What the email shows when overnight research fails: the roster straight
+ *  from the calendar plus whatever the inbox snapshot already knows about each
+ *  person. Costs no model call — the point is that the people section never
+ *  silently disappears (it did on 2026-08-05 when the research call 500'd). */
+export function rosterOnlyPeople(snapshot: TodaySnapshot): AttendeeIntel[] {
+  const roster = buildTodayPeopleFromMeetings(snapshot.meetings);
+  const contexts = buildEmailContextsForPeople(
+    roster.map((p) => ({ name: p.name, email: p.email })),
+    snapshot.emails,
+  );
+  return roster.map((p) => {
+    const ctx = contexts.get(intelKey(p.name, p.email)) ?? null;
+    return {
+      name: p.name,
+      email: p.email,
+      meetingTitle: p.meetingTitle,
+      meetingTime: p.meetingTime,
+      emailContext: ctx
+        ? { ...ctx, companyGuess: ctx.companyGuess || p.company || '' }
+        : { email: p.email ?? '', companyGuess: p.company ?? '', messageCount: 0, snippets: [] },
+      bio: '',
+      introducedBy: '',
+      relationshipContext: '',
+      angle: '',
+      conversationTip: '',
+      confidence: 'low',
+      recurring: Boolean(p.recurring),
+      actionNeeded: false,
+      actionNote: '',
+    };
+  });
 }
 
 function normalizeConfidence(c: string | undefined): IntelConfidence {
