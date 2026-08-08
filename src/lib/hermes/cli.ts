@@ -152,11 +152,15 @@ export async function runAnthropicPrompt(
         stop_reason?: string;
       };
       const text = json.content?.find((c) => c.type === 'text')?.text ?? '';
-      if (!text) throw new Error('Empty Anthropic response');
       // Truncated JSON would break extractJson — retry once with a bigger cap.
+      // This must run before the empty guard: the model's adaptive thinking can
+      // consume the entire output budget before any text block is emitted, and
+      // that response (a lone thinking block, stop_reason=max_tokens) is only
+      // recoverable by retrying with more room.
       if (json.stop_reason === 'max_tokens' && maxTokens < 32768) {
         return runAnthropicPrompt(prompt, timeoutMs, maxTokens * 2);
       }
+      if (!text) throw new Error('Empty Anthropic response');
       return text;
     } catch (e) {
       lastErr = e as Error;
@@ -224,12 +228,20 @@ export async function runAnthropicResearch(
       const errJson = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
       throw new Error(errJson.error?.message || `Anthropic ${res.status}`);
     }
-    const json = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
+    const json = (await res.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+      stop_reason?: string;
+    };
     const text = (json.content ?? [])
       .filter((c) => c.type === 'text')
       .map((c) => c.text ?? '')
       .join('\n')
       .trim();
+    // Same recovery as runAnthropicPrompt: thinking can eat the whole budget
+    // before any text lands — retry with a doubled cap instead of failing.
+    if (json.stop_reason === 'max_tokens' && maxTokens < 32768) {
+      return runAnthropicResearch(prompt, timeoutMs, maxTokens * 2, maxSearches);
+    }
     if (!text) throw new Error('Empty research response');
     return text;
   } finally {
