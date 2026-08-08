@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Mail, Zap, AlertTriangle, CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, Flame, UserPlus, Lightbulb } from 'lucide-react';
-import { aiPriorityItems, dailyBriefing, type AIPriorityItem, type AsanaTask, type DailyBriefing, type OverdueTask, type BriefSection } from '@/lib/data';
+import { type AIPriorityItem, type AsanaTask, type DailyBriefing, type OverdueTask, type BriefSection } from '@/lib/data';
 import { buildTodayPeopleFromMeetings, isInternalAttendee } from '@/lib/outlook/meeting-people';
 import { useSync } from '@/components/dashboard/SyncProvider';
 import { useAttendeeIntel } from '@/components/dashboard/AttendeeIntelProvider';
@@ -259,14 +259,16 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
     }
     if (priRes.ok) {
      const p = await priRes.json();
-     setPriorities(p.items?.length ? p.items : aiPriorityItems);
+     // Real items or nothing — never the mock fixtures. An empty list renders
+     // an honest "still collecting" state instead of fabricated priorities.
+     setPriorities(p.items ?? []);
     } else {
-     setPriorities(aiPriorityItems);
+     setPriorities([]);
     }
    } catch {
     if (!cancelled) {
      setBriefing(null);
-     setPriorities(aiPriorityItems);
+     setPriorities([]);
     }
    } finally {
     if (!cancelled) setAiLoading(false);
@@ -275,10 +277,13 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
   return () => { cancelled = true; };
  }, [calendarMeetings, refreshNonce]);
 
- const activeBriefing = briefing ?? dailyBriefing;
+ // No mock fallback: until today's real briefing exists, the panel shows an
+ // honest "collecting data" state — fabricated content misleads more than a
+ // blank ever could.
+ const activeBriefing = briefing;
 
  const overdueTasks =
-  asanaOverdue.length > 0 ? asanaOverdue : activeBriefing.overdueTasks;
+  asanaOverdue.length > 0 ? asanaOverdue : (activeBriefing?.overdueTasks ?? []);
 
  const rawPeople =
   intelPeople.length > 0 ? intelPeople : buildTodayPeopleFromMeetings(calendarMeetings);
@@ -309,11 +314,13 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
        </div>
        <div>
         <div style={{ color: 'var(--gold-light)', fontSize: '12px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>Daily Briefing</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: 1 }}>Hermes · {activeBriefing.generatedAt} · {activeBriefing.date}</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: 1 }}>Hermes · {activeBriefing ? `${activeBriefing.generatedAt} · ${activeBriefing.date}` : 'collecting today’s data…'}</div>
        </div>
       </div>
       <div style={{ background: briefingMeta?.emailSent ? 'rgba(76,175,130,0.1)' : 'rgba(201,160,68,0.1)', border: `1px solid ${briefingMeta?.emailSent ? 'rgba(76,175,130,0.3)' : 'rgba(201,160,68,0.3)'}`, borderRadius: 20, padding: '4px 12px', color: briefingMeta?.emailSent ? 'var(--success)' : 'var(--gold-light)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px' }}>
-       {briefingMeta?.emailSent ? `✓ DELIVERED ${activeBriefing.generatedAt}` : `DRAFT READY · ${activeBriefing.generatedAt}`}
+       {activeBriefing
+        ? (briefingMeta?.emailSent ? `✓ DELIVERED ${activeBriefing.generatedAt}` : `DRAFT READY · ${activeBriefing.generatedAt}`)
+        : (aiLoading ? 'PREPARING…' : 'COLLECTING DATA')}
       </div>
      </div>
     </div>
@@ -321,7 +328,7 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
     {/* Tabs */}
     <div style={{ borderBottom: '1px solid var(--border-subtle)', padding: '0 20px', display: 'flex', gap: 0 }}>
      {([
-      { key: 'insights' as const, label: 'Key Insights', count: activeBriefing.keyInsights.length },
+      { key: 'insights' as const, label: 'Key Insights', count: activeBriefing?.keyInsights.length ?? 0 },
       { key: 'overdue' as const, label: 'Overdue Tasks', count: overdueTasks.length },
       { key: 'people' as const, label: "Today's People", count: displayPeople.length },
      ]).map(({ key, label, count }) => (
@@ -340,7 +347,17 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
 
     {/* Tab Content */}
     <div style={{ padding: '18px 20px' }}>
-     {briefTab === 'insights' && (
+     {briefTab === 'insights' && !activeBriefing && (
+      <div className="slide-in" style={{ padding: '26px 8px', textAlign: 'center' }}>
+       <p style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+        {aiLoading ? 'Preparing today’s briefing…' : 'Today’s briefing hasn’t been generated yet.'}
+       </p>
+       <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 6 }}>
+        Kory’s data is still being collected — this fills in automatically once it’s ready.
+       </p>
+      </div>
+     )}
+     {briefTab === 'insights' && activeBriefing && (
       <div className="slide-in space-y-4">
        {activeBriefing.briefSections?.length ? (
         <div style={{ background: 'rgba(201,160,68,0.06)', border: '1px solid rgba(201,160,68,0.18)', borderLeft: '3px solid var(--gold-primary)', borderRadius: '0 10px 10px 0', padding: '14px 16px' }}>
@@ -530,11 +547,22 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
      </div>
     </div>
     <div style={{ padding: '16px 20px' }}>
-     <div className="space-y-3">
-      {(priorities.length ? priorities : aiPriorityItems).map((item, idx) => (
-       <PriorityCard key={item.id} item={item} rank={idx + 1} />
-      ))}
-     </div>
+     {priorities.length ? (
+      <div className="space-y-3">
+       {priorities.map((item, idx) => (
+        <PriorityCard key={item.id} item={item} rank={idx + 1} />
+       ))}
+      </div>
+     ) : (
+      <div style={{ padding: '22px 8px', textAlign: 'center' }}>
+       <p style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+        {aiLoading ? 'Scoring your day…' : 'No priorities yet.'}
+       </p>
+       <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 6 }}>
+        Today’s data is still being collected — real items appear here as soon as they’re scored.
+       </p>
+      </div>
+     )}
     </div>
    </div>
 
@@ -548,12 +576,17 @@ export default function TodayTab({ onNavigate }: { onNavigate?: (tab: TabId) => 
      </span>
     </div>
     <div style={{ padding: '8px 0' }}>
+     {overdueTasks.length === 0 && (
+      <p style={{ color: 'var(--text-faint)', fontSize: 12, textAlign: 'center', padding: '14px 0' }}>
+       Nothing overdue right now.
+      </p>
+     )}
      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 divide-x" style={{ borderColor: 'var(--border-subtle)' }}>
-      {activeBriefing.overdueTasks.map((task, i) => {
+      {overdueTasks.map((task, i) => {
        const srcColor = sourceColors[task.source] || 'var(--text-muted)';
        const priorityColor = task.priority === 'critical' ? 'var(--danger)' : task.priority === 'high' ? 'var(--warning)' : 'var(--gold-light)';
        return (
-        <div key={i} style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: i < activeBriefing.overdueTasks.length - 2 ? '1px solid var(--border-subtle)' : 'none' }} className="hover:bg-black/[0.04] transition-all">
+        <div key={i} style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: i < overdueTasks.length - 2 ? '1px solid var(--border-subtle)' : 'none' }} className="hover:bg-black/[0.04] transition-all">
          <div style={{ width: 24, height: 24, borderRadius: 6, background: srcColor + '18', border: `1px solid ${srcColor}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 800, color: srcColor, flexShrink: 0 }}>
           {task.source.slice(0, 2).toUpperCase()}
          </div>
